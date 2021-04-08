@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import json
 import tkinter as tk
 import sys, time, math, random
 import threading
@@ -9,11 +10,12 @@ from tkinter import tix, ttk
 from PIL import ImageTk, Image, ImageDraw
 random.seed(0)
 class Planet:
-    def __init__(self, x, y, radius, name, color):
+    def __init__(self, x, y, radius, name, color, planet_id):
         self.x, self.y = x, y
         self.radius = radius
         self.name = name
         self.color = color
+        self.planet_id = planet_id
         self.ships = {"passenger": random.randrange(10), "war": random.randrange(10), "container": random.randrange(10)}
         self.engines = {"gen1": random.randrange(40), "gen2": random.randrange(100), "gen3": random.randrange(4)}
     def __str__(self):
@@ -55,9 +57,12 @@ class Ship:
         else:
             delta_x = self.x - self.speed / math.sqrt(1+m**2)
         delta_y = m*delta_x + b
-        print(m, b, delta_x, delta_y)
+#        print(m, b, delta_x, delta_y)
+#        print(f"m:{m} b:{b} delta_x:{delta_x} delta_y:{delta_y}")
         self.x = delta_x
         self.y = delta_y
+        print(f"{self.source_x} {self.source_y} - {self.x} {self.y}")
+
         self.game.canvas.delete(self.line)
         self.line = self.game.canvas.create_line(self.source_x, self.source_y, self.x, self.y, fill="green")
         print(self.x, self.y)
@@ -65,10 +70,14 @@ class Shipment_Form(tk.Toplevel):
     def __init__(self, master, game):
         super().__init__(master)
         self.game = game
+        planets = self.game.planets.copy()
+        print("ALL PLANETS ARE")
+        for p in planets:
+            print(p)
         self.title("Shipment form")
         self.geometry("400x400")
-        self.source_combo = ttk.Combobox(self, values=self.game.planets)
-        self.dest_combo = ttk.Combobox(self, values=self.game.planets)
+        self.source_combo = ttk.Combobox(self, values=planets)
+        self.dest_combo = ttk.Combobox(self, values=planets)
         self.dest_combo.configure(state="disabled")
         self.source_combo.grid()
         self.dest_combo.grid()
@@ -102,15 +111,33 @@ class Shipment_Form(tk.Toplevel):
         self.send_button.bind("<Button>", self.send_shipment)
     
     def prepare_shipment(self):
+        print("PREPARE SHIPMENT RUNNING")
         dest_name = self.dest_combo.get()
         self.dest_planet = self.game.get_planet_by_name(dest_name)
         print("s: {} d: {} p: {} sv: {} ev: {}".format(self.source_planet, self.dest_planet, self.passengers.get(), self.ship_var.get(), self.engine_var.get()) )
-        self.ship = Ship(self.source_planet.x, self.source_planet.y, self.dest_planet.x, self.dest_planet.y, self.game, 1)
+        self.ship = Ship(self.source_planet.x, self.source_planet.y, self.dest_planet.x, self.dest_planet.y, self.game, 10)
         self.ship["passengers"] = self.passengers.get()
+        print(self.source_planet, self.dest_planet)
 
     def send_shipment(self, event):
+        print("SEND SHIPMENT RUNNING")
+        print("YYYYYYYYYYYYYYYYY")
+        try:
+            self.game.socket.send(bytes("banana\r\n".encode("utf-8")))
+        except:
+            print("IT DIDNT WORK")
         self.prepare_shipment()
+        self.game.socket.send(bytes("hello world\r\n".encode("utf-8")))
+        source = self.source_planet.planet_id
+        dest = self.dest_planet.planet_id
+
+        message_dict = {"MESSAGE_TYPE": "SHIP", "SOURCE": source, "DESTINATION": dest, "MANIFEST": {"crystals": [],"passengers": 0}}
+        message = json.dumps(message_dict) + "\r\n"
+        message = bytes(message.encode("utf-8"))
+        print(f"KKKKKKKKKKKK message: {message}")
+        self.game.socket.send(message)
         self.game.register_ship(self, self.ship)
+#        self.game.socket.send(b"hello world")
 class PlanetFrame(tk.Frame):
     def __init__(self, game):
         self.root = game.root
@@ -127,7 +154,9 @@ class PlanetFrame(tk.Frame):
 
         
 class Application():
-    def __init__(self):
+    def __init__(self, socket):
+        self.planets = []
+        self.socket = socket
         self.root = tk.Tk()
 #        self.left = tk.Frame(self.root)
 #        self.left.pack(side="left")
@@ -136,23 +165,23 @@ class Application():
 #        button.pack(side="top")
 #        e1 = tk.Entry(self.left)
 #        e1.pack(side="top")
-        canvas = tk.Canvas(self.root, bg="black", height=700, width=800)
+        canvas = tk.Canvas(self.root, bg="black", height=1000, width=1000)
         self.canvas = canvas
-        amount = random.randrange(5, 30)
-        self.planets = []
-        for i in range(amount):
-            radius = random.randrange(2, 20)
-            x = random.randrange(1000)
-            y = random.randrange(1000)
-            name = ""
-            size = random.randrange(4, 10)
-            for _ in range(size):
-                letter = random.choice("abcdefghijklmnopqrstuvwxyz")
-                name += letter
-            color = random.choice(["red", "blue", "purple", "yellow", "orange", "white"])
-            planet = Planet(x, y, radius, name, color)
-            self.planets.append(planet)
-            self.draw_planet(planet)
+#        amount = random.randrange(5, 30)
+#        self.planets = []
+#        for i in range(amount):
+#            radius = random.randrange(2, 20)
+#            x = random.randrange(1000)
+#            y = random.randrange(1000)
+#            name = ""
+#            size = random.randrange(4, 10)
+#            for _ in range(size):
+#                letter = random.choice("abcdefghijklmnopqrstuvwxyz")
+#                name += letter
+#            color = random.choice(["red", "blue", "purple", "yellow", "orange", "white"])
+#            planet = Planet(x, y, radius, name, color)
+#            self.planets.append(planet)
+#            self.draw_planet(planet)
         
         canvas.pack(side="right")
 #        n = tk.StringVar()
@@ -178,7 +207,47 @@ class Application():
         self.year = 2000
         self.rate = 1
         self.update_clock()
+        thread = threading.Thread(target=self.receive_loop)
+        thread.start()
+    def receive_loop(self):
+        pass
+        s = self.socket
+        s.connect(("127.0.0.1", 7777))
+        while True:
+            print(self.planets)
+            lines = str(s.recv(1024).decode("utf-8")).lower().split("\r\n")
+            for l in lines: 
+                print(l)
+                l = l.strip()
+                try:
+                    message_dict = json.loads(l)
+                except:
+                    continue
+                print(message_dict)
+                message_type = message_dict.get("message_type")
+                if message_type == "planet_info":
+                    print("PLANET INFO")
+                    x = message_dict.get("x")
+                    y = message_dict.get("y")
+                    radius = message_dict.get("radius")
+                    name = message_dict.get("name")
+                    color = message_dict.get("color")
+                    planet_id = message_dict.get("planet_id")
 
+                    planet = Planet(x, y, radius, name, color, planet_id)
+                    self.planets.append(planet)
+                    self.draw_planet(planet)
+#                    print(self.planets)
+    #def __init__(self, x, y, radius, name, color):
+            
+            
+
+        #with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        #    s.connect((SERVER, PORT))
+        #    s.sendall(b"hello world")
+        #    while True:
+        #        data = s.recv(1024)
+        #sys.exit()
     def register_ship(self, form, ship):
         del form
         self.all_ships.append(ship)
@@ -255,15 +324,17 @@ class Application():
             engine_type = ship_form.getvar(name="engine")
             for a in ship_form.grid_slaves():
                 print(a)
+            print("SENDING SHIPMENT")
             
     def find_distance(self, source_x, source_y, dest_x, dest_y):
-        distance = math.sqrt((dest_x-source_x)**2+(dest_y-dest_y)**2)
+        distance = math.sqrt((dest_x-source_x)**2+(dest_y-source_y)**2)
         return distance
     def draw_planet(self, planet):
         xl = planet.x - planet.radius
         xr = planet.x + planet.radius
         yl = planet.y - planet.radius
         yr = planet.y + planet.radius
+        print("------------")
         print(xl, yl, xr, yr)
 
         self.canvas.create_oval(xl, yl, xr, yr, fill=planet.color)
@@ -298,18 +369,17 @@ class Application():
         self.ship.game = self
     def create_widgets(self):
         pass
-PORT = 5000
+PORT = 7777
 #SERVER = socket.gethostbyname(socket.gethostname())
 SERVER = "127.0.1.1"
 
 FORMAT = "utf-8"
-with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-    s.connect((SERVER, PORT))
-    s.sendall(b"hello world")
-    data = s.recv(1024)
-#with SERVER as s:
-print(server)
-print(SERVER)
-sys.exit()
-app = Application()
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+#with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+#    s.connect((SERVER, PORT))
+#    s.sendall(b"hello world")
+#    while True:
+#        data = s.recv(1024)
+#sys.exit()
+app = Application(s)
 app.root.mainloop()
