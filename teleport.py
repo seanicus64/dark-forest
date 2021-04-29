@@ -196,6 +196,7 @@ class SpaceCanvas(tk.Canvas):
         self.delete("all")
         self.virt_width = self.phys_width * self.zoom_factor ** self.zoom_level * 1000000
         self.virt_height = self.phys_height * self.zoom_factor ** self.zoom_level * 1000000
+        print(f"width in microAUs: {self.virt_width}")
 
 
             
@@ -264,21 +265,12 @@ class SpaceCanvas(tk.Canvas):
         #self.c = self.create_text(self.phys_width/2, self.phys_height/2, text=f"{int(self.x+(self.virt_width/2))}, {int(self.y+(self.virt_height/2))}", fill="white")
         #print(f"center is {int(self.x+(self.virt_width/2))}, {int(self.y+(self.virt_height/2))}")
         print(f"x, y: {int(self.x), int(self.y)}")
+
     def virt_to_phys(self, x, y):
         new_x = int((x - self.x) / (self.zoom_factor ** self.zoom_level * 1000000)) + 500
         new_y = int((y - self.y) / (self.zoom_factor ** self.zoom_level * 1000000)) + 500
-        print("====")
-        print("self.x, self.y", self.x, self.y)
-        print("new_y, new_x", new_y, new_x)
-        print("x, y", x, y)
-        #print("a", new_x, new_y)
-        #new_x -= (self.phys_width / 2)
-        #new_y -= (self.phys_height / 2)
-        #print("b", new_x, new_y)
-
-#        print(f"zoom: {self.zoom_level}\tx, y: {(x, y)}\tn_x, n_y: {(new_x, new_y)}")
         return new_x, new_y
-        #self.virt_width = self.phys_width * 10 ** self.zoom_level * 1000000
+
     def zoom_out(self):
         self.zoom("out")
     def zoom_in(self):
@@ -428,71 +420,52 @@ class SpaceCanvas(tk.Canvas):
         result = self.virt_to_phys(x, y)
 #        print("virt to phys: ", result)
         return line
+    
 
-
-
-        
-        pass
     def phys_to_virt(self, x, y):
-        #nx = (x - sx) / (f**L*1000000)
-        #nx * (f**L*1000000) = x-sx
-        #nx * (f**L*1000000) + sx = x
-        #new_x = int((x - self.x) / (self.zoom_factor ** self.zoom_level * 1000000)) + 500
-        #nx = (x-sx)/(f**L*10000)+500
-        #nx-500=(x-sx)/(f**L*1000)
-        #(nx-500)*(f**L*1000) = (x-sx)
-        #x-sx = (nx-500)*(f**L*1000)
-        #x = (nx-500)*(f**L*1000)
-        #px = (vx - sx) / (f**L*10000)+500
-        #px - 500 = (vx-sx)/(f**L*1000)
-        #(px - 500)*(f**L*1000) = (vx-sx)
-        #(px - 500)*(f**L*1000) + sx = vx
-        # vx = (px - 500) * (f**L*1000) + sx
-        virt_x = (x ) * (self.zoom_factor**self.zoom_level*1000000) + self.x
-        virt_y = (y ) * (self.zoom_factor**self.zoom_level*1000000) + self.y
-        new_x = (self.zoom_factor ** self.zoom_level*1000000) * x + self.x
-        new_y = (self.zoom_factor ** self.zoom_level*1000000) * x + self.y
+        print(f"during {self.x, self.y}")
+        print("virt_x = (x ) * (self.zoom_factor**self.zoom_level*1000000) + self.x")
+        print(f"x =  {x}; zf = {self.zoom_factor}; zl = {self.zoom_level} ; sx = {self.x}")
+        print("vx = (x) * (zf**zl*1000000) - sx")
+        print(f"self.x = {self.x}")
+        virt_x = (x - 500) * (self.zoom_factor**self.zoom_level*1000000) + self.x
+        virt_y = (y - 500) * (self.zoom_factor**self.zoom_level*1000000) + self.y
+        print(f"phys: {(x, y)}")
+        print(f"virt: {(virt_x, virt_y)}")
+        print(f"self.x = {self.x}")
         return virt_x, virt_y
-        return new_x, new_y
-
-#        new_x = int((x - self.x) / (self.zoom_factor ** self.zoom_level * 1000000))
-#        new_y = int((y - self.y) / (self.zoom_factor ** self.zoom_level * 1000000))
-#
-##        print(f"zoom: {self.zoom_level}\tx, y: {(x, y)}\tn_x, n_y: {(new_x, new_y)}")
-#        return new_x, new_y
         
     def onObjectClick(self, event):
-        print("Got object click", event.x, event.y)
         which_object = event.widget.find_closest(event.x, event.y)
-        print(event.widget.find_closest(event.x, event.y))
         current_time = datetime.datetime.now()
         if self.last_click:
             last_object, last_time = self.last_click
             if last_object == which_object:
-                print(current_time - last_time)
+                planet_obj_id = event.widget.find_closest(event.x, event.y)[0]
+                planet = self.get_planet_from_object_id(planet_obj_id, self.canvas_ids)
+                if not planet:
+                    return
                 difference = current_time - last_time
-                print(difference)
-                print(datetime.timedelta(milliseconds=500))
                 if difference <= datetime.timedelta(milliseconds=500):
-                    print("DOUBLECLICKED")
-                    x = event.x - 500
-                    y = event.y - 500
-                    x, y = self.phys_to_virt(x, y)
-                    
-                    self.x, self.y = x, y
-
+                    self.x, self.y = planet.x, planet.y
                     self.redraw()
                 
         self.last_click = (which_object, current_time)
         print(self.last_click)
+
+    @staticmethod
+    def get_planet_from_object_id(object_id, canvas_ids_dict):
+        print(object_id)
+        for k, v in canvas_ids_dict.items():
+            planet_obj, name_obj, orbit_obj = v
+            if object_id == planet_obj:
+                return k
+        return None
+
+            
         
     def draw_planet(self, planet):
-        #x_coord = planet.x - self.x
-        #x_coord = planet.x / self.virt_width * self.phys_width
-        #y_coord = planet.y / self.virt_height * self.phys_height
         x_coord, y_coord = self.virt_to_phys(planet.x, planet.y)
-        #self.virt_width = self.phys_width * 10 ** self.zoom_level * 1000000
-#        y_coord = planet.y - self.y
         radius = 5
         if planet.name == "sun":
             radius = 10
@@ -504,15 +477,11 @@ class SpaceCanvas(tk.Canvas):
         name_cvsid = None
         if self.zoom_level <= 9:
             name_cvsid = self.create_text(xl, yl-10, text=planet.name, fill="white", tag=f"{planet.name}_label")
-        print(f"orbit is {planet.get_parent()}")
         parent = planet.get_parent()
         orbit_csvid = None
         if parent:
-            print("does this even run?")
             x, y = self.virt_to_phys(parent.x, parent.y)
-        #self.canvas.create_oval(xl, yl, xr, yr, fill=planet.color, outline="black")
             distance = self.game.find_distance(x, y, x_coord, y_coord)
-            print(f"distance is: {distance}")
             orbit_csvid = self.create_oval(x - distance, y - distance, x + distance, y + distance, outline="gray", width=1, tag="something")
         if planet.name == "mars":
             
@@ -520,7 +489,6 @@ class SpaceCanvas(tk.Canvas):
         else:
             planet_cvsid = self.create_oval(xl, yl, xr, yr, fill=planet.color, outline="purple", tag=planet.name)
         self.tag_bind(planet_cvsid, "<ButtonPress-1>", self.onObjectClick)
-        #orbit_csvid = self.create_oval(x1, y1, xr, yr
         self.canvas_ids[planet] = (planet_cvsid, name_cvsid, orbit_csvid)
 class Application():
     def __init__(self, socket):
@@ -557,8 +525,9 @@ class Application():
         thread = threading.Thread(target=self.receive_loop)
         thread.start()
     def clicked_canvas(self, event):
-        print(f"Clicked at {event.x} {event.y}")
-        print(self.canvas.phys_to_virt(event.x, event.y))
+        pass
+#        print(f"Clicked at {event.x} {event.y}")
+#        print(self.canvas.phys_to_virt(event.x, event.y))
     def receive_loop(self):
         s = self.socket
         s.connect(("127.0.0.1", 7777))
