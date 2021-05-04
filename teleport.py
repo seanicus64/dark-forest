@@ -30,7 +30,8 @@ class Planet:
     def __str__(self):
         return self.name
 class Ship:
-    def __init__(self, source, dest, source_x, source_y, dest_x, dest_y, game, speed=2):
+    engine_speeds = {"gen1": 100000, "gen2": 1000000}
+    def __init__(self, source, dest, source_x, source_y, dest_x, dest_y, game, engine_type):
         self.source = source
         self.dest = dest
         self.source_x, self.source_y = source_x, source_y
@@ -38,7 +39,9 @@ class Ship:
         self.x, self.y = source_x, source_y
         
         self.game = game
-        self.speed = speed
+        self.engine_type = engine_type
+        self.speed = self.engine_speeds[self.engine_type]
+        
         self.line = None
         self.manifest = {
             "passengers": 0,
@@ -127,7 +130,12 @@ class Shipment_Form(tk.Toplevel):
         dest_name = self.dest_combo.get()
         self.dest_planet = self.game.get_planet_by_name(dest_name)
         source, dest = self.source_planet, self.dest_planet
-        self.ship = Ship(source, dest, self.source_planet.x, self.source_planet.y, self.dest_planet.x, self.dest_planet.y, self.game, 5)
+        print(f"engine type: {self.engine_var.get()}")
+        self.engine_type = self.engine_var.get()
+        if not self.engine_type:
+            self.engine_type = "gen1"
+        self.ship = Ship(source, dest, self.source_planet.x, self.source_planet.y, self.dest_planet.x, self.dest_planet.y, self.game, self.engine_type)
+    #def __init__(self, source, dest, source_x, source_y, dest_x, dest_y, game, speed=2):
         self.ship["passengers"] = self.passengers.get()
         planned_route = self.game.canvas.create_planned_line(self.ship)
 #        planned_route = self.game.canvas.create_line(self.source_planet.x, self.source_planet.y, self.dest_planet.x, self.dest_planet.y, fill="green", width=1)
@@ -138,7 +146,7 @@ class Shipment_Form(tk.Toplevel):
         self.prepare_shipment()
         source = self.source_planet.planet_id
         dest = self.dest_planet.planet_id
-        message_dict = {"MESSAGE_TYPE": "SHIP", "SOURCE": source, "DESTINATION": dest, "MANIFEST": {"crystals": [],"passengers": 0}}
+        message_dict = {"MESSAGE_TYPE": "SHIP", "SOURCE": source, "DESTINATION": dest, "ENGINE_TYPE": self.engine_type, "MANIFEST": {"crystals": [],"passengers": 0}}
         message = json.dumps(message_dict) + "\r\n"
         message = bytes(message.encode("utf-8"))
         self.game.socket.send(message)
@@ -194,6 +202,8 @@ class SpaceCanvas(tk.Canvas):
         #    print(self.coords(i))
 
         self.delete("all")
+        print(f"each pixel is {(self.zoom_factor ** self.zoom_level) * 1000000} micro-AUs\tearth is 42 microAUs")
+
         self.virt_width = self.phys_width * self.zoom_factor ** self.zoom_level * 1000000
         self.virt_height = self.phys_height * self.zoom_factor ** self.zoom_level * 1000000
         print(f"width in microAUs: {self.virt_width}")
@@ -234,8 +244,12 @@ class SpaceCanvas(tk.Canvas):
             self.shipment_ids[shipment] = [planned_obj, line_obj, None]
         planet_dict = {"yes": 0, "no": 0}
         for p in self.game.planets:
-            if not (p.is_star or self.zoom_level <= -13): 
+            special = False
+            if p.name in ["sun", "mercury", "venus", "earth", "mars", "jupiter", "saturn", "uranus", "neptune"]:
+                special = True
+            if not (p.is_star or self.zoom_level <= -3): 
                 planet_dict["no"] += 1
+                
                 continue
         
             
@@ -243,7 +257,8 @@ class SpaceCanvas(tk.Canvas):
             x, y = self.virt_to_phys(p.x, p.y)
             #x, y = 0, 0
             #print(x, y)
-           
+          
+            
             if 0 <= x < self.phys_width and 0 <= y < self.phys_height:
                 planet_dict["yes"] += 1
 #                print("this subfunction runs")
@@ -466,9 +481,26 @@ class SpaceCanvas(tk.Canvas):
         
     def draw_planet(self, planet):
         x_coord, y_coord = self.virt_to_phys(planet.x, planet.y)
-        radius = 5
+        #radius = 5
+        radius = planet.radius
+        print(planet.radius)
         if planet.name == "sun":
             radius = 10
+        x_topleft = planet.x - planet.radius
+        y_topleft = planet.y - planet.radius
+        x_bottomright = planet.x + planet.radius
+        y_bottomright = planet.y + planet.radius
+        phys_x_topleft, phys_y_topleft = self.virt_to_phys(x_topleft, y_topleft)
+        phys_x_bottomright, phys_y_bottomright = self.virt_to_phys(x_bottomright, y_bottomright)
+        print("brx, tlx", phys_x_bottomright, phys_x_topleft)
+        print("brx - tlx", phys_x_bottomright -  phys_x_topleft)
+        if phys_x_bottomright - phys_x_topleft <= 4:
+            planet_coords = self.virt_to_phys(planet.x, planet.y)
+
+            phys_x_topleft, phys_y_topleft  = planet_coords[0] - 2, planet_coords[1] - 2
+            phys_x_bottomright, phys_y_bottomright = planet_coords[0] + 2, planet_coords[1] + 2
+#            phys_x_bottomright, phys_y_bottomright = self.virt_to_phys(planet.x, planet.y)
+
         xl = x_coord - radius
         yl = y_coord - radius
         xr = x_coord + radius
@@ -487,7 +519,8 @@ class SpaceCanvas(tk.Canvas):
             
             planet_cvsid = self.create_oval(xl, yl, xr, yr, fill=planet.color, outline="black", tag=planet.name)
         else:
-            planet_cvsid = self.create_oval(xl, yl, xr, yr, fill=planet.color, outline="purple", tag=planet.name)
+            planet_cvsid = self.create_oval(phys_x_topleft, phys_y_topleft, phys_x_bottomright, phys_y_bottomright, fill=planet.color, outline="green", tag=planet.name)
+            #planet_cvsid = self.create_oval(xl, yl, xr, yr, fill=planet.color, outline="purple", tag=planet.name)
         self.tag_bind(planet_cvsid, "<ButtonPress-1>", self.onObjectClick)
         self.canvas_ids[planet] = (planet_cvsid, name_cvsid, orbit_csvid)
 class Application():
@@ -531,21 +564,32 @@ class Application():
     def receive_loop(self):
         s = self.socket
         s.connect(("127.0.0.1", 7777))
+        data = ""
         while True:
-            lines = str(s.recv(1024).decode("utf-8")).lower().split("\r\n")
+            # handles lines cut off by buffer size
+            new_data = str(s.recv(1024).decode("utf-8")).lower()
+            data += new_data
+            split_data = data.split("\n")
+            lines = split_data[:-1]
+            data = split_data[-1]
+
+            #lines = str(s.recv(1024).decode("utf-8")).lower().split("\r\n")
             for l in lines: 
+                print(l)
                 l = l.strip()
                 try:
                     message_dict = json.loads(l)
                 except:
                     continue
-                print(message_dict)
                 message_type = message_dict.get("message_type")
                 if message_type == "planet_info":
+                    
                     x = message_dict.get("x")
                     y = message_dict.get("y")
                     radius = message_dict.get("radius")
                     name = message_dict.get("name")
+                    if name in ["sun", "mercury", "venus", "earth", "mars", "jupiter", "saturn", "uranus", "neptune"]:
+                        print(message_dict)
                     color = message_dict.get("color")
                     planet_id = message_dict.get("planet_id")
                     is_star = message_dict.get("is_star")

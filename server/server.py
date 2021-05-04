@@ -26,13 +26,14 @@ class Planet:
     def __str__(self):
         return self.name
 class Ship:
-    def __init__(self, factory, source, dest):
+    def __init__(self, factory, source, dest, engine):
         self.factory = factory
         self.source = source
         self.dest = dest
+        self.engine = engine
         self.x = source.x
         self.y = source.y
-        self.speed = 10
+        self.speed = 100000
         self.manifest = {
             "passengers": 0,
             "cystals": [],
@@ -79,9 +80,13 @@ class GalaxyProtocol(basic.LineReceiver):
             self.send_planet(p, self.player)
 
     def send_planet(self, planet, player):
-        print(f"planet.is_star: {planet.is_star}")
+        #print(f"planet.is_star: {planet.is_star}")
         message_dict = {"MESSAGE_TYPE": "PLANET_INFO", "x": planet.x, "y": planet.y, "radius": planet.radius, "color": planet.color, "owner": planet.owner.uid, "name": planet.name, "planet_id": planet.planet_id, "is_star": planet.is_star, "parent": planet.parent.planet_id if planet.parent else None}
         message = bytes((json.dumps(message_dict) + "\r\n").encode("utf-8"))
+        
+        if planet.name in "sun,mercury,venus,earth,mars,jupiter,saturn,uranus,neptune".split(","):
+            print(planet.name)
+            print(message_dict)
         player.protocol.sendLine(message)
 
     def lineReceived(self, line):
@@ -115,8 +120,9 @@ class GalaxyProtocol(basic.LineReceiver):
 class GalaxyFactory(protocol.ServerFactory):
     def __init__(self):
         for i in range(100):
-            print(f"solar system #{i}")
-            self.create_solar_system()
+            #print(f"solar system #{i}")
+            #self.create_solar_system()
+            pass
     protocol = GalaxyProtocol
     players = []
     planets = []
@@ -126,16 +132,17 @@ class GalaxyFactory(protocol.ServerFactory):
     p_id = 0
     amount = 9 
     distances = [0, 40, 70, 100, 150, 520, 950, 1920, 3000]
+    distances = [0, 400000, 700000, 1000000, 1500000, 5200000, 9500000, 19200000, 30000000]
     names = ["sun", "mercury", "venus", "earth", "mars", "jupiter", "saturn", "uranus", "neptune"]
     star = None
     for i in range(amount):
         radius = random.randrange(2, 20)
         radius = 5
-        x = random.randrange(1000)
-        y = random.randrange(1000)
-        y = 500
-        x = distances[i] + 500
-        y = 500 - distances[i]
+#        x = random.randrange(1000)
+#        y = random.randrange(1000)
+#        y = 500
+#        x = distances[i] + 500
+#        y = 500 - distances[i]
         if i == 0:
             y = 0
             x = 0
@@ -149,6 +156,7 @@ class GalaxyFactory(protocol.ServerFactory):
                 x *= -1
         x += 1000000
         y += 1000000
+        
         name = ""
     
         size = random.randrange(4, 10)
@@ -161,8 +169,12 @@ class GalaxyFactory(protocol.ServerFactory):
         if i == 0:
             is_star = True
         planet = Planet(x, y, radius, name, color, is_star, star)
+        #print(planet.x, planet.y)
         if i == 0:
             star = planet
+            print(f"star: {star.name}\t{star.x},{star.y}")
+        else:
+            print(f"planet: {planet.name}\t{planet.x},{planet.y}")
         planet.planet_id = p_id
         planet_ids[p_id] = planet
         p_id += 1
@@ -173,7 +185,7 @@ class GalaxyFactory(protocol.ServerFactory):
         distances = [0]
         for i in range(amount-1):
             number = random.randrange(100, 4000)
-            print(number)
+            #print(number)
             distances.append(number)
 #        distances = [0] + [lambda x: random.randrange(4000) for x in range(amount-1)]
         names = ["star"] + ["a" for i in range(amount-1)]
@@ -181,8 +193,9 @@ class GalaxyFactory(protocol.ServerFactory):
         star_y = random.randrange(1000000000000)
         star = None
         for i in range(amount):
-            print(i)
+            #print(i)
             radius = 5
+            radius = random.randrange(2, 20)
             if i == 0:
                 x, y = 0, 0
                 
@@ -190,7 +203,7 @@ class GalaxyFactory(protocol.ServerFactory):
                 try:
                     y = int(random.randrange(-1*distances[i], distances[i]))
                 except:
-                    print("banana", distances[i])
+                    #print("banana", distances[i])
                     raise
                 r = distances[i]
                 x = int(math.sqrt(r**2 - y**2))
@@ -213,7 +226,7 @@ class GalaxyFactory(protocol.ServerFactory):
             planet = Planet(x, y, radius, name, color, is_star, star)
             if i == 0:
                 star = planet
-            print(f"{i}: planet.is_star: {planet.is_star}")
+            #print(f"{i}: planet.is_star: {planet.is_star}")
             planet.planet_id = self.p_id
             self.planet_ids[self.p_id] = planet
             self.p_id += 1
@@ -282,7 +295,7 @@ class GalaxyFactory(protocol.ServerFactory):
                 delta_y = m * delta_x + b
                 ship.x = delta_x
                 ship.y = delta_y
-        ship = Ship(self, source, dest)
+        ship = Ship(self, source, dest, engine_type)
         loop = task.LoopingCall(runEverySecond, ship)
         loop.i = 0
         loopDeferred = loop.start(1, now=True)
