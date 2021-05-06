@@ -169,7 +169,8 @@ class SpaceCanvas(tk.Canvas):
         self.space_image = tk.PhotoImage(file="space2.ppm")
         self.zoom_factor = 2
         self.zoom_level = -2
-        # the top left coordinates as they relate to the overall galaxy map
+
+        # the center x, y coordinates as they relate to the overall galaxy map
         self.x = 1000000
         self.y = 1000000
         self.phys_width = 1000
@@ -183,35 +184,13 @@ class SpaceCanvas(tk.Canvas):
         self.canvas_ids = {}
         self.shipment_ids = {}
         self.redraw()
-#        self.geometry(f"{self.width}x{self.height}")
         self.phys_planet_locations = {}
         self.last_click = None
+
     def redraw(self):
-        if hasattr(self, "a"):
-            self.delete(self.a)
-        if hasattr(self, "b"):
-            self.delete(self.b)
-        if hasattr(self, "c"):
-            self.delete(self.c)
-        #self.zoom += 1
-        #print(dir(self))
-        #print(self.find_all())
-        #for i in self.find_all():
-        #    print(i)
-        #    print(type(i))
-        #    print(self.coords(i))
-
         self.delete("all")
-        print(f"each pixel is {(self.zoom_factor ** self.zoom_level) * 1000000} micro-AUs\tearth is 42 microAUs")
-
         self.virt_width = self.phys_width * self.zoom_factor ** self.zoom_level * 1000000
         self.virt_height = self.phys_height * self.zoom_factor ** self.zoom_level * 1000000
-        print(f"width in microAUs: {self.virt_width}")
-
-
-            
-#        self.x += 100
-
         self.create_image(0, 0, image=self.space_image, anchor=tk.NW)
         up = tk.Button(self.root, text="up", command=self.move_up)
         down = tk.Button(self.root, text="down", command=self.move_down)
@@ -225,62 +204,51 @@ class SpaceCanvas(tk.Canvas):
         button_right_window = self.create_window(70, 130, anchor=tk.NW, window=right)
         button_zoomout_window = self.create_window(10, 200, anchor=tk.NW, window=zoomout)
         button_zoomin_window = self.create_window(10, 220, anchor=tk.NW, window=zoomin)
-        #button1_window = self.create_window(10, 10, anchor=tk.NW, window=button1)
-#        print("============")
-#        print(f"virt_width: {self.virt_width}, virt_height: {self.virt_height}")
-#        print(self.shipment_ids)
+        
         for shipment in self.shipment_ids.keys():
-#            print("deleting shipment values")
             self.delete(self.shipment_ids[shipment][0])
             self.delete(self.shipment_ids[shipment][1])
             self.delete(self.shipment_ids[shipment][2])
             
-        #for shipment, v in self.shipment_ids.items():
             planned_obj = self.create_planned_line(shipment)
             line_obj = self.create_shipment_line(shipment)
-            #planned_obj, line_obj, ship_obj = v
-#            print(f"planned: {planned_obj}")
-#            print(f"line_obj: {line_obj}")
             self.shipment_ids[shipment] = [planned_obj, line_obj, None]
-        planet_dict = {"yes": 0, "no": 0}
-        for p in self.game.planets:
-            special = False
-            if p.name in ["sun", "mercury", "venus", "earth", "mars", "jupiter", "saturn", "uranus", "neptune"]:
-                special = True
-            if not (p.is_star or self.zoom_level <= -1): 
-                planet_dict["no"] += 1
-                
-                continue
-        
-            
-            
-            x, y = self.virt_to_phys(p.x, p.y)
-            #x, y = 0, 0
-            #print(x, y)
-          
-            
-            if 0 <= x < self.phys_width and 0 <= y < self.phys_height:
-                planet_dict["yes"] += 1
-#                print("this subfunction runs")
-#                print(p.is_star)
-#                print(self.zoom_level)
-                self.draw_planet(p)
-#                if p.is_star or self.zoom_level <= -13:
- #                   self.draw_planet(p)
-#            if 0 <= x < self.phys_width and 0 <= y < self.phys_height and self.zoom_level <= -13:
-#                print("it has run")
-                
-#                self.draw_planet(p)
-            else:
-                planet_dict["no"] += 1
-        print(f"yes: {planet_dict['yes']}\tno: {planet_dict['no']}")
-#        name_cvsid = self.create_text(xl, yl-10, text=planet.name, fill="white", tag=f"{planet.name}_label")
-        self.a = self.create_text(self.x, self.y, text=f"{int(self.x)},{int(self.y)}", fill="white")
-        self.b = self.create_text(80, 20, text=f"{int(self.x)},{int(self.y)} {self.zoom_level}", fill="white")
-        #self.c = self.create_text(self.phys_width/2, self.phys_height/2, text=f"{int(self.x+(self.virt_width/2))}, {int(self.y+(self.virt_height/2))}", fill="white")
-        #print(f"center is {int(self.x+(self.virt_width/2))}, {int(self.y+(self.virt_height/2))}")
-        print(f"x, y: {int(self.x), int(self.y)}")
 
+        for p in self.game.planets:
+            if not (p.is_star or self.zoom_level <= -1): 
+                continue
+            x, y = self.virt_to_phys(p.x, p.y)
+            planet_cvsid = None
+            name_cvsid = None
+            orbit_cvsid = self.draw_orbit(p)
+            if 0 <= x < self.phys_width and 0 <= y < self.phys_height:
+                planet_cvsid, name_cvsid = self.draw_planet(p)
+            
+            if any((planet_cvsid, name_cvsid, orbit_cvsid)):
+                self.canvas_ids[p] = (planet_cvsid, name_cvsid, orbit_cvsid)
+            if name_cvsid:
+                self.tag_bind(planet_cvsid, "<ButtonPress-1>", self.onObjectClick)
+                self.tag_bind(name_cvsid, "<ButtonPress-1>", self.onObjectClick)
+    
+    def draw_orbit(self, planet):
+        orbit_cvsid = None
+        parent = planet.get_parent()
+        x_coord, y_coord = self.virt_to_phys(planet.x, planet.y)
+        if parent:
+            x, y = self.virt_to_phys(parent.x, parent.y)
+            distance = self.game.find_distance(x, y, x_coord, y_coord)
+            
+            corners = ((x-distance, y-distance), (x-distance, y+distance), (x+distance, y-distance), (x+distance, y+distance))
+            draw_orbit = False
+            for c in corners:
+                cx, cy = c
+                if all(((0-(self.phys_width/2)<=cx<self.phys_width+(self.phys_width/2)), (0-(self.phys_height/2)<=cy<self.phys_height+(self.phys_height/2)))):
+                    draw_orbit = True
+                    break
+            if draw_orbit:
+                
+                orbit_cvsid = self.create_oval(x - distance, y - distance, x + distance, y + distance, outline="gray", width=1, tag="something")
+        return orbit_cvsid
     def virt_to_phys(self, x, y):
         new_x = int((x - self.x) / (self.zoom_factor ** self.zoom_level * 1000000)) + 500
         new_y = int((y - self.y) / (self.zoom_factor ** self.zoom_level * 1000000)) + 500
@@ -293,40 +261,12 @@ class SpaceCanvas(tk.Canvas):
     def zoom(self, direction):
         if direction == "in":
             self.zoom_level -= 1
-            #self.x += int(self.virt_width/4)
-            #self.y += int(self.virt_height/4)
-            change = (self.virt_width / 2) - ((self.virt_width/self.zoom_factor)/2)
-            change = 0
-            print("=======")
-            print(f"x: {self.x}")
-            print(f"virt_width: {self.virt_width}")
-            print(f"v_w/2: {self.virt_width/2}")
-            print(f"(virt_width/zoom_factor)/2: {(self.virt_width/self.zoom_factor)/2}")
-            print(f"change: {change}")
-            self.x += change
-            self.y += change
-            print("ZOOMING IN")
-
         else:
             self.zoom_level += 1
-            change = (self.virt_width/2)
-            change = 0
-            self.x -= change
-            self.y -= change
-            print("=======")
-            print(f"x: {self.x}")
-            print(f"virt_width: {self.virt_width}")
-            print(f"v_w/2: {self.virt_width/2}")
-            print(f"(virt_width/zoom_factor)/2: {(self.virt_width/self.zoom_factor)/2}")
-            print(f"change: {change}")
-            self.x += change
-            self.y += change
-            print("ZOOMING OUT")
         self.redraw()
         
+    # XXX Not currently being used, may be used in the future
     def move_object(self, xchange=0, ychange=0):
-#        self.x -= xchange
-#        self.y -= ychange
         if xchange < 0:
             self.x += self.virt_width / 5
         if ychange < 0:
@@ -342,117 +282,51 @@ class SpaceCanvas(tk.Canvas):
             planet_obj, name_obj, orbit_obj= v
             self.move(planet.name, xchange, ychange)
             self.move(f"{planet.name}_label", xchange, ychange)
-            #self.move
         for k, v in self.shipment_ids.items():
             shipment = k
             planned_obj, line_obj, ship_obj = v
-            print(line_obj)
-            #self.delete(line_obj)
             self.move(planned_obj, xchange, ychange)
             self.move(line_obj, xchange, ychange)
             self.move(ship_obj, xchange, ychange)
 
     def move_left(self):
         self.move_object(+200, 0)
- #       self.x -= 100
- #       for k, v in self.canvas_ids.items():
- #           planet = k
- #           planet_obj, name_obj = v
- #           self.move(planet.name, 100, 0)
- #           self.move(f"{planet.name}_label", 100, 0)
- #       #self.redraw()
-        pass
     def move_right(self):
         self.move_object(-200, 0)
-#        self.x += 100
-#        for k, v in self.canvas_ids.items():
-#            planet = k
-#            planet_obj, name_obj = v
-#            self.move(planet.name, -100, 0)
-#            self.move(f"{planet.name}_label", -100, 0)
-#            print(f"{planet.name}_label")
-        #self.redraw()
-        pass
     def move_up(self):
         self.move_object(0, 200)
-#        self.y -= 100
-#        for k, v in self.canvas_ids.items():
-#            planet = k
-#            planet_obj, name_obj = v
-#            self.move(planet.name, 0, 100)
-#            self.move(f"{planet.name}_label",0, 100)
-        #self.redraw()
-        pass
     def move_down(self):
         self.move_object(0, -200)
-#        self.y += 100
-#        for k, v in self.canvas_ids.items():
-#            planet = k
-#            planet_obj, name_obj = v
-#            self.move(planet.name, 0, -100)
-#            self.move(f"{planet.name}_label", 0, -100)
-#        #self.redraw()
-        pass
     def create_planned_line(self, shipment):
         source_x, source_y = shipment.source.x, shipment.source.y
         dest_x, dest_y = shipment.dest.x, shipment.dest.y
         phys_source_x, phys_source_y = self.virt_to_phys(source_x, source_y)
         phys_x, phys_y = self.virt_to_phys(dest_x, dest_y)
-#        phys_source_x = source_x - self.x
-#        phys_source_y = source_y - self.y
-#        phys_x = dest_x - self.x
-#        phys_y = dest_y - self.y
-        
-        print(f"psx: {phys_source_x}, psy: {phys_source_y}, px:{phys_x}, py:{phys_y}")
-        print(f"sx: {source_x}, sy:{source_y}, dx:{dest_x}, dy:{dest_y}")
         planned_route = self.game.canvas.create_line(phys_source_x, phys_source_y, phys_x, phys_y, fill="green", width=1)
         # highest length is about 42.5billion
         # dont go over 10k objects
-        print("CREATED PLANNED ROUTE")
         return planned_route
-        #self.shipment_ids[shipment][0] = planned_route
+
     def create_shipment_line(self, shipment):
         source_x, source_y = shipment.source.x, shipment.source.y
         x, y = shipment.x, shipment.y
         phys_source_x, phys_source_y = self.virt_to_phys(source_x, source_y)
         phys_x, phys_y = self.virt_to_phys(x, y)
-        #phys_source_x = source_x - self.x
-        #phys_source_y = source_y - self.y
-        #phys_x = x - self.x
-        #phys_y = y - self.y
-        #print(phys_source_x, phys_source_y, phys_x, phys_y)
-        
         line = self.create_line(phys_source_x, phys_source_y, phys_x, phys_y, fill="purple", width=3)
         ship_graphic = self.create_rectangle(phys_x-2, phys_y-2, phys_x+2, phys_y+2, fill="red", outline="black")
-#        print(f"ship object id: {ship_graphic}")
-#        try:
-#            del self.shipment_ids[shipment]
-#            print(f"deleted {shipment}")
-#        except: pass
         self.shipment_ids[shipment][1] = line
         self.shipment_ids[shipment][2] = ship_graphic
-#        print(f"shipment line is {line}")
         result = self.virt_to_phys(x, y)
-#        print("virt to phys: ", result)
         return line
     
 
     def phys_to_virt(self, x, y):
-        print(f"during {self.x, self.y}")
-        print("virt_x = (x ) * (self.zoom_factor**self.zoom_level*1000000) + self.x")
-        print(f"x =  {x}; zf = {self.zoom_factor}; zl = {self.zoom_level} ; sx = {self.x}")
-        print("vx = (x) * (zf**zl*1000000) - sx")
-        print(f"self.x = {self.x}")
         virt_x = (x - 500) * (self.zoom_factor**self.zoom_level*1000000) + self.x
         virt_y = (y - 500) * (self.zoom_factor**self.zoom_level*1000000) + self.y
-        print(f"phys: {(x, y)}")
-        print(f"virt: {(virt_x, virt_y)}")
-        print(f"self.x = {self.x}")
         return virt_x, virt_y
         
     def onObjectClick(self, event):
         which_object = event.widget.find_closest(event.x, event.y)
-        print(f"which_object: {which_object}")
         current_time = datetime.datetime.now()
         if self.last_click:
             last_object, last_time = self.last_click
@@ -467,7 +341,6 @@ class SpaceCanvas(tk.Canvas):
                     self.redraw()
                 
         self.last_click = (which_object, current_time)
-        print(self.last_click)
 
     @staticmethod
     def get_planet_from_object_id(object_id, canvas_ids_dict):
@@ -482,47 +355,39 @@ class SpaceCanvas(tk.Canvas):
         
     def draw_planet(self, planet):
         x_coord, y_coord = self.virt_to_phys(planet.x, planet.y)
-        #radius = 5
         radius = planet.radius
-        print(planet.radius)
-        if planet.name == "sun":
-            radius = 10
         x_topleft = planet.x - planet.radius
         y_topleft = planet.y - planet.radius
         x_bottomright = planet.x + planet.radius
         y_bottomright = planet.y + planet.radius
         phys_x_topleft, phys_y_topleft = self.virt_to_phys(x_topleft, y_topleft)
         phys_x_bottomright, phys_y_bottomright = self.virt_to_phys(x_bottomright, y_bottomright)
-        print("brx, tlx", phys_x_bottomright, phys_x_topleft)
-        print("brx - tlx", phys_x_bottomright -  phys_x_topleft)
+
+        # Creates minimum size so we can see at least sea a planet in the system
+        # or a star in the galaxy.
         if phys_x_bottomright - phys_x_topleft <= 4:
             planet_coords = self.virt_to_phys(planet.x, planet.y)
-
             phys_x_topleft, phys_y_topleft  = planet_coords[0] - 2, planet_coords[1] - 2
             phys_x_bottomright, phys_y_bottomright = planet_coords[0] + 2, planet_coords[1] + 2
-#            phys_x_bottomright, phys_y_bottomright = self.virt_to_phys(planet.x, planet.y)
 
         xl = x_coord - radius
         yl = y_coord - radius
         xr = x_coord + radius
         yr = y_coord + radius
-        #print(x_coord, y_coord)
-        name_cvsid = None
-        if self.zoom_level <= 12:
-            pass
-            #name_cvsid = self.create_text(xl, yl-10, text=planet.name, fill="white", tag=f"{planet.name}_label")
-            #name_cvsid = self.create_text(phys_x_topleft, phys_y_topleft-10, text=planet.name, fill="white", tag=f"{planet.name}_label")
-            #self.tag_bind(name_cvsid, "<ButtonPress-1>", self.onObjectClick)
-        parent = planet.get_parent()
-        orbit_csvid = None
-        if parent:
-            x, y = self.virt_to_phys(parent.x, parent.y)
-            distance = self.game.find_distance(x, y, x_coord, y_coord)
-            orbit_csvid = self.create_oval(x - distance, y - distance, x + distance, y + distance, outline="gray", width=1, tag="something")
         planet_cvsid = self.create_oval(phys_x_topleft, phys_y_topleft, phys_x_bottomright, phys_y_bottomright, fill=planet.color, outline="green", tag=planet.name)
+        name_cvsid = self.create_text(xl, yl, text=planet.name, fill="white", tag=f"{planet.name}_label")
+        return planet_cvsid, name_cvsid
+
+        name_cvsid = None
+        parent = planet.get_parent()
+        orbit_cvsid = None
+#        if parent:
+#            x, y = self.virt_to_phys(parent.x, parent.y)
+#            distance = self.game.find_distance(x, y, x_coord, y_coord)
+#            orbit_csvid = self.create_oval(x - distance, y - distance, x + distance, y + distance, outline="gray", width=1, tag="something")
             #planet_cvsid = self.create_oval(xl, yl, xr, yr, fill=planet.color, outline="purple", tag=planet.name)
         self.tag_bind(planet_cvsid, "<ButtonPress-1>", self.onObjectClick)
-        self.canvas_ids[planet] = (planet_cvsid, name_cvsid, orbit_csvid)
+        self.canvas_ids[planet] = (planet_cvsid, name_cvsid, orbit_cvsid)
 class Application():
     def __init__(self, socket):
         self.planets = []
