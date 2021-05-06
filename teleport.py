@@ -247,7 +247,7 @@ class SpaceCanvas(tk.Canvas):
             special = False
             if p.name in ["sun", "mercury", "venus", "earth", "mars", "jupiter", "saturn", "uranus", "neptune"]:
                 special = True
-            if not (p.is_star or self.zoom_level <= -3): 
+            if not (p.is_star or self.zoom_level <= -1): 
                 planet_dict["no"] += 1
                 
                 continue
@@ -452,6 +452,7 @@ class SpaceCanvas(tk.Canvas):
         
     def onObjectClick(self, event):
         which_object = event.widget.find_closest(event.x, event.y)
+        print(f"which_object: {which_object}")
         current_time = datetime.datetime.now()
         if self.last_click:
             last_object, last_time = self.last_click
@@ -473,7 +474,7 @@ class SpaceCanvas(tk.Canvas):
         print(object_id)
         for k, v in canvas_ids_dict.items():
             planet_obj, name_obj, orbit_obj = v
-            if object_id == planet_obj:
+            if object_id in (name_obj, planet_obj):
                 return k
         return None
 
@@ -507,19 +508,18 @@ class SpaceCanvas(tk.Canvas):
         yr = y_coord + radius
         #print(x_coord, y_coord)
         name_cvsid = None
-        if self.zoom_level <= 9:
-            name_cvsid = self.create_text(xl, yl-10, text=planet.name, fill="white", tag=f"{planet.name}_label")
+        if self.zoom_level <= 12:
+            pass
+            #name_cvsid = self.create_text(xl, yl-10, text=planet.name, fill="white", tag=f"{planet.name}_label")
+            #name_cvsid = self.create_text(phys_x_topleft, phys_y_topleft-10, text=planet.name, fill="white", tag=f"{planet.name}_label")
+            #self.tag_bind(name_cvsid, "<ButtonPress-1>", self.onObjectClick)
         parent = planet.get_parent()
         orbit_csvid = None
         if parent:
             x, y = self.virt_to_phys(parent.x, parent.y)
             distance = self.game.find_distance(x, y, x_coord, y_coord)
             orbit_csvid = self.create_oval(x - distance, y - distance, x + distance, y + distance, outline="gray", width=1, tag="something")
-        if planet.name == "mars":
-            
-            planet_cvsid = self.create_oval(xl, yl, xr, yr, fill=planet.color, outline="black", tag=planet.name)
-        else:
-            planet_cvsid = self.create_oval(phys_x_topleft, phys_y_topleft, phys_x_bottomright, phys_y_bottomright, fill=planet.color, outline="green", tag=planet.name)
+        planet_cvsid = self.create_oval(phys_x_topleft, phys_y_topleft, phys_x_bottomright, phys_y_bottomright, fill=planet.color, outline="green", tag=planet.name)
             #planet_cvsid = self.create_oval(xl, yl, xr, yr, fill=planet.color, outline="purple", tag=planet.name)
         self.tag_bind(planet_cvsid, "<ButtonPress-1>", self.onObjectClick)
         self.canvas_ids[planet] = (planet_cvsid, name_cvsid, orbit_csvid)

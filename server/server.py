@@ -121,7 +121,7 @@ class GalaxyFactory(protocol.ServerFactory):
     def __init__(self):
         for i in range(100):
             #print(f"solar system #{i}")
-            #self.create_solar_system()
+            self.create_solar_system()
             pass
     protocol = GalaxyProtocol
     players = []
@@ -133,11 +133,13 @@ class GalaxyFactory(protocol.ServerFactory):
     amount = 9 
     distances = [0, 40, 70, 100, 150, 520, 950, 1920, 3000]
     distances = [0, 400000, 700000, 1000000, 1500000, 5200000, 9500000, 19200000, 30000000]
+    radii = [4650, 16, 40, 43, 23, 468, 390, 170, 165]
     names = ["sun", "mercury", "venus", "earth", "mars", "jupiter", "saturn", "uranus", "neptune"]
     star = None
     for i in range(amount):
         radius = random.randrange(2, 20)
         radius = 5
+        radius = radii[i]
 #        x = random.randrange(1000)
 #        y = random.randrange(1000)
 #        y = 500
@@ -185,6 +187,7 @@ class GalaxyFactory(protocol.ServerFactory):
         distances = [0]
         for i in range(amount-1):
             number = random.randrange(100, 4000)
+            number = random.randrange(300000, 30000000)
             #print(number)
             distances.append(number)
 #        distances = [0] + [lambda x: random.randrange(4000) for x in range(amount-1)]
