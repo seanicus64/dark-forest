@@ -5,6 +5,7 @@ import sys, time, math, random
 import threading
 import socket
 import datetime
+from functools import partial
 from datetime import date
 from tkinter import tix, ttk
 from PIL import ImageTk, Image, ImageDraw
@@ -98,6 +99,7 @@ class Shipment_Form(tk.Toplevel):
         self.dest_combo = ttk.Combobox(self, values=planets)
         self.dest_combo.configure(state="disabled")
         self.source_combo.grid()
+        self.canvas = SpaceCanvas(self)
         self.dest_combo.grid()
         self.source_combo.bind("<<ComboboxSelected>>", self._make_form)
         self.dependent = tk.Frame(self)
@@ -158,9 +160,33 @@ class PlanetFrame(tk.Frame):
         self.game = game
         super().__init__(self.root)
         self.current_planet = tk.StringVar()
-        self.current_planet.set("banana")
+        self.current_planet.set("earth")
         self.label = tk.Label(self, textvariable=self.current_planet)
         self.label.pack(side="left")
+        self.slider = tk.Frame(self)
+        self.temp = tk.StringVar()
+        self.temp.set("This is the slider label")
+        self.slider_label = tk.Label(self.slider, textvariable=self.temp)
+        self.slider.pack(side="top")
+        self.slider_label.pack(side="left")
+        #self.source_combo = ttk.Combobox(self, values=planets)
+        self.zoom_combo = ttk.Combobox(self.slider, values=list(range(-30, 30)), height=40, width=3)
+        self.zoom_combo.pack(side="left")
+        self.zoom_buttons = {}
+
+        for i in range(-30, 30, 2):
+            
+            command = partial(self.zoom, i)
+            print(id(command))
+            button = tk.Button(self, text=str(i), command=command)
+            button.pack(side="top")
+            self.zoom_buttons[i] = button
+    def zoom(self, amount):
+        print(self.game)
+        print(self.game.canvas)
+        print(amount)
+        self.game.canvas.zoom_level = amount
+        self.game.canvas.redraw()
 class SpaceCanvas(tk.Canvas):
     def __init__(self, game):
         self.game = game
@@ -205,6 +231,9 @@ class SpaceCanvas(tk.Canvas):
         button_zoomout_window = self.create_window(10, 200, anchor=tk.NW, window=zoomout)
         button_zoomin_window = self.create_window(10, 220, anchor=tk.NW, window=zoomin)
         
+        text = f"{self.x},{self.y}   zoom:{self.zoom_level}"
+#        name_cvsid = self.create_text(xl, yl, text=planet.name, fill="white", tag=f"{planet.name}_label")
+        self.create_text(100, 10, text=text, fill="white")
         for shipment in self.shipment_ids.keys():
             self.delete(self.shipment_ids[shipment][0])
             self.delete(self.shipment_ids[shipment][1])
@@ -231,20 +260,61 @@ class SpaceCanvas(tk.Canvas):
                 self.tag_bind(name_cvsid, "<ButtonPress-1>", self.onObjectClick)
     
     def draw_orbit(self, planet):
+        draw_orbit = False
         orbit_cvsid = None
         parent = planet.get_parent()
         x_coord, y_coord = self.virt_to_phys(planet.x, planet.y)
+        draw_orbit = False
         if parent:
             x, y = self.virt_to_phys(parent.x, parent.y)
             distance = self.game.find_distance(x, y, x_coord, y_coord)
-            
-            corners = ((x-distance, y-distance), (x-distance, y+distance), (x+distance, y-distance), (x+distance, y+distance))
-            draw_orbit = False
-            for c in corners:
-                cx, cy = c
-                if all(((0-(self.phys_width/2)<=cx<self.phys_width+(self.phys_width/2)), (0-(self.phys_height/2)<=cy<self.phys_height+(self.phys_height/2)))):
-                    draw_orbit = True
-                    break
+            circle_distance_x = abs(x-self.phys_width/2)
+            circle_distance_y = abs(y-self.phys_height/2)
+            status = ""
+            if circle_distance_x > (self.phys_width/2) + distance: 
+                draw_orbit = False
+                status += "a"
+                
+            if circle_distance_y > (self.phys_height/2) + distance: 
+                draw_orbit = False
+                status += "b"
+
+            if (circle_distance_x <= self.phys_width/2): 
+                draw_orbit = True
+                status += "c"
+            if (circle_distance_y <= self.phys_height/2): 
+                draw_orbit = True
+                status += "d"
+            current_distance_sq = (circle_distance_x - self.phys_width/2)**2 +\
+                    (circle_distance_y - self.phys_height/2)**2
+            if current_distance_sq <= distance**2:
+                draw_orbit = True
+                status += "e"
+
+            if planet.name == "earth": print(status)
+
+#           bool intersects(CircleType circle, RectType rect)
+#{
+#    circleDistance.x = abs(circle.x - rect.x);
+#    circleDistance.y = abs(circle.y - rect.y);
+#
+#    if (circleDistance.x > (rect.width/2 + circle.r)) { return false; }
+#    if (circleDistance.y > (rect.height/2 + circle.r)) { return false; }
+#
+#    if (circleDistance.x <= (rect.width/2)) { return true; } 
+#    if (circleDistance.y <= (rect.height/2)) { return true; }
+#
+#    cornerDistance_sq = (circleDistance.x - rect.width/2)^2 +
+#                         (circleDistance.y - rect.height/2)^2;
+#
+#    return (cornerDistance_sq <= (circle.r^2));
+#} 
+##            corners = ((x-distance, y-distance), (x-distance, y+distance), (x+distance, y-distance), (x+distance, y+distance))
+##            for c in corners:
+##                cx, cy = c
+##                if all(((0-(self.phys_width/2)<=cx<self.phys_width+(self.phys_width/2)), (0-(self.phys_height/2)<=cy<self.phys_height+(self.phys_height/2)))):
+##                    draw_orbit = True
+##                    break
             if draw_orbit:
                 
                 orbit_cvsid = self.create_oval(x - distance, y - distance, x + distance, y + distance, outline="gray", width=1, tag="something")
@@ -395,15 +465,15 @@ class Application():
         self.root = tk.Tk()
         self.all_ships = []
         #canvas = tk.Canvas(self.root, bg="black", height=1000, width=1000)
-        canvas = SpaceCanvas(self)
+        self.canvas = SpaceCanvas(self)
         
+        self.planet_frame = PlanetFrame(self)
 #        space_image = ImageTk.PhotoImage(Image.open("space.jpg"))
         #print(space_image)
-        self.canvas = canvas
         self.canvas.bind("<Button-1>", self.clicked_canvas)
         #button1_window.pack()
-        canvas.pack(side="right")
-        self.planet_frame = PlanetFrame(self)
+        self.canvas.pack(side="right")
+        #self.main_frame = tk.Frame(self)
         self.planet_frame.pack(side="left")
         self.make_shipment_form = tk.Button(self.root, text="Create shipment")
         self.make_shipment_form["command"] = self.create_shipment_form
@@ -440,7 +510,7 @@ class Application():
 
             #lines = str(s.recv(1024).decode("utf-8")).lower().split("\r\n")
             for l in lines: 
-                print(l)
+                #print(l)
                 l = l.strip()
                 try:
                     message_dict = json.loads(l)
