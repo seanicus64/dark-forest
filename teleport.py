@@ -166,32 +166,33 @@ class PlanetFrame(tk.Frame):
         self.slider = tk.Frame(self)
         self.temp = tk.StringVar()
         self.temp.set("This is the slider label")
-        self.slider_label = tk.Label(self.slider, textvariable=self.temp)
-        self.slider.pack(side="top")
-        self.slider_label.pack(side="left")
-        #self.source_combo = ttk.Combobox(self, values=planets)
-        self.zoom_combo = ttk.Combobox(self.slider, values=list(range(-30, 30)), height=40, width=3)
-        self.zoom_combo.pack(side="left")
-        self.zoom_buttons = {}
-
-        for i in range(-30, 30, 2):
-            
-            command = partial(self.zoom, i)
-            print(id(command))
-            button = tk.Button(self, text=str(i), command=command)
-            button.pack(side="top")
-            self.zoom_buttons[i] = button
-    def zoom(self, amount):
-        print(self.game)
-        print(self.game.canvas)
-        print(amount)
-        self.game.canvas.zoom_level = amount
-        self.game.canvas.redraw()
+#        self.slider_label = tk.Label(self.slider, textvariable=self.temp)
+#        self.slider.pack(side="left")
+#        self.slider_label.pack(side="left")
+#        #self.source_combo = ttk.Combobox(self, values=planets)
+#        self.zoom_combo = ttk.Combobox(self.slider, values=list(range(-30, 30)), height=40, width=3)
+#        self.zoom_combo.pack(side="left")
+#        self.zoom_buttons = {}
+#
+#        for i in range(-30, 30, 2):
+#            
+#            command = partial(self.zoom, i)
+#            print(id(command))
+#            button = tk.Button(self, text=str(i), command=command)
+#            button.pack(side="bottom")
+#            self.zoom_buttons[i] = button
+#    def zoom(self, amount):
+#        print(self.game)
+#        print(self.game.canvas)
+#        print(amount)
+#        self.game.canvas.zoom_level = amount
+#        self.game.canvas.redraw()
 class SpaceCanvas(tk.Canvas):
-    def __init__(self, game):
+    def __init__(self, game, parent):
         self.game = game
         self.root = self.game.root
-        super().__init__(self.root, bg="black", height=1000, width=1000)
+        self.parent = parent
+        super().__init__(self.parent, bg="black", height=1000, width=1000)
         self.space_image = tk.PhotoImage(file="space2.ppm")
         self.zoom_factor = 2
         self.zoom_level = -2
@@ -465,8 +466,42 @@ class Application():
         self.root = tk.Tk()
         self.all_ships = []
         #canvas = tk.Canvas(self.root, bg="black", height=1000, width=1000)
-        self.canvas = SpaceCanvas(self)
+        self.canvas_frame = tk.Frame(self.root)
+        self.top_panel = tk.Frame(self.canvas_frame)
+        label = tk.Label(self.top_panel, text="hello world")
+        label.pack(side="top")
+        self.top_panel.pack(side="top")
+        self.canvas = SpaceCanvas(self, self.canvas_frame)
+        self.canvas_frame.pack(side="right")
+        self.canvas.pack(side="bottom")
+        self.zoom_buttons = {}
+        for i in range(-30, 30, 1):
+            command = partial(self.zoom, i)
+            button = tk.Button(self.canvas_frame, text=str(i), command=command, height=1, pady=0)
+            button.pack(side="bottom")
+            self.zoom_buttons[i] = button
         
+#        self.slider_label = tk.Label(self.slider, textvariable=self.temp)
+#        self.slider.pack(side="left")
+#        self.slider_label.pack(side="left")
+#        #self.source_combo = ttk.Combobox(self, values=planets)
+#        self.zoom_combo = ttk.Combobox(self.slider, values=list(range(-30, 30)), height=40, width=3)
+#        self.zoom_combo.pack(side="left")
+#        self.zoom_buttons = {}
+#
+#        for i in range(-30, 30, 2):
+#            
+#            command = partial(self.zoom, i)
+#            print(id(command))
+#            button = tk.Button(self, text=str(i), command=command)
+#            button.pack(side="bottom")
+#            self.zoom_buttons[i] = button
+#    def zoom(self, amount):
+#        print(self.game)
+#        print(self.game.canvas)
+#        print(amount)
+#        self.game.canvas.zoom_level = amount
+#        self.game.canvas.redraw()
         self.planet_frame = PlanetFrame(self)
 #        space_image = ImageTk.PhotoImage(Image.open("space.jpg"))
         #print(space_image)
@@ -477,7 +512,7 @@ class Application():
         self.planet_frame.pack(side="left")
         self.make_shipment_form = tk.Button(self.root, text="Create shipment")
         self.make_shipment_form["command"] = self.create_shipment_form
-        self.make_shipment_form.pack(side="top")
+        self.make_shipment_form.pack(side="right")
         self.root.geometry(f"{self.root.winfo_screenwidth()}x{self.root.winfo_screenheight()}")
 #        self.root.geometry("900x900")
         self.time = tk.Label(self.root, text="")
@@ -492,6 +527,12 @@ class Application():
         self.update_clock()
         thread = threading.Thread(target=self.receive_loop)
         thread.start()
+    def zoom(self, amount):
+#        print(self.game)
+#        print(self.game.canvas)
+#        print(amount)
+        self.canvas.zoom_level = amount
+        self.canvas.redraw()
     def clicked_canvas(self, event):
         pass
 #        print(f"Clicked at {event.x} {event.y}")
