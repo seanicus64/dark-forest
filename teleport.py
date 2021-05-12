@@ -5,6 +5,7 @@ import sys, time, math, random
 import threading
 import socket
 import datetime
+import math
 from functools import partial
 from datetime import date
 from tkinter import tix, ttk
@@ -75,18 +76,11 @@ class Ship:
         delta_y = m*delta_x + b
         self.x = delta_x
         self.y = delta_y
-#        print(f"deleting canvas object {self.line}")
         self.game.canvas.delete(self.line)
         self.shipment_obj = self.game.canvas.shipment_ids[self][2]
         self.game.canvas.delete(self.shipment_obj)
         
         self.line = self.game.canvas.create_shipment_line(self)
-        #self.game.canvas.delete(self.line)
-        #planned_line = self.game.canvas.create_line(self.source_x, self.source_y, self.dest_x, self.dest_y, fill="green", width=1)
-        #self.line = self.game.canvas.create_line(self.source_x, self.source_y, self.x, self.y, fill="green", width=3)
-        #self.line = self.game.canvas.create_line(self.source_x, self.source_y, self.dest_x, self.dest_y, fill="green", width=1)
-#        print(f"source_x: {self.source_x}  source_y: {self.source_y}  dest_x: {self.dest_x}  dest_y: {self.dest_y}  self.x: {self.x}  self.y: {self.y}")
-#        self.game.canvas.shipment_ids[self] = self.line, planned_line
 
 class Shipment_Form(tk.Toplevel):
     def __init__(self, master, game):
@@ -166,6 +160,7 @@ class PlanetFrame(tk.Frame):
         self.slider = tk.Frame(self)
         self.temp = tk.StringVar()
         self.temp.set("This is the slider label")
+<<<<<<< HEAD
 #        self.slider_label = tk.Label(self.slider, textvariable=self.temp)
 #        self.slider.pack(side="left")
 #        self.slider_label.pack(side="left")
@@ -187,6 +182,60 @@ class PlanetFrame(tk.Frame):
 #        print(amount)
 #        self.game.canvas.zoom_level = amount
 #        self.game.canvas.redraw()
+=======
+        self.slider_label = tk.Label(self.slider, textvariable=self.temp)
+        self.slider.pack(side="top")
+        self.slider_label.pack(side="left")
+        #self.source_combo = ttk.Combobox(self, values=planets)
+        self.zoom_combo = ttk.Combobox(self.slider, values=list(range(-30, 30)), height=40, width=3)
+        self.zoom_combo.pack(side="left")
+        self.zoom_buttons = {}
+        self.zoom_canvas = tk.Canvas(self)
+        self.zoom_canvas.config(width=70, height=self.game.canvas.phys_height, bg="black")
+#        name_cvsid = self.create_text(xl, yl, text=planet.name, fill="white", tag=f"{planet.name}_label")
+        self.zoom_canvas.pack(side="left")
+        #planned_route = self.game.canvas.create_line(phys_source_x, phys_source_y, phys_x, phys_y, fill="green", width=1)
+        self.zoom_canvas.create_line(30, 0, 30, self.game.canvas.phys_height, fill="white", width=4)
+        self.zoom_canvas.bind("<Button-1>", self.clicked_zoom_canvas)
+        for i in range(-30, 30, 1):
+            y = (i+30)*(self.game.canvas.phys_height/60)
+            y_min = int((i+29.5)*(self.game.canvas.phys_height/60))
+            y_max = int((i+30.5)*(self.game.canvas.phys_height/60))
+            self.zoom_canvas.create_line(25, y, 35, y, fill="green", width=3)
+            self.zoom_canvas.create_text(45, y, text=f"{i}", fill="white")
+            if i == self.game.canvas.zoom_level:
+                self.current_zoom_indicator = self.zoom_canvas.create_oval(5, y-5, 15, y+5, fill="blue")
+            #rect = self.zoom_canvas.create_rectangle(0, y_min, 70, y_max, fill="")
+            
+            #self.tag_bind(planet_cvsid, "<ButtonPress-1>", self.onObjectClick)
+            #self.zoom_canvas.tag_bind(rect, "<ButtonPress-1>", self.clicked_zoom_canvas)
+            command = partial(self.zoom, i)
+            print(id(command))
+            button = tk.Button(self, text=str(i), command=command)
+            button.pack(side="top")
+            self.zoom_buttons[i] = button
+    def zoom(self, amount):
+        print(self.game)
+        print(self.game.canvas)
+        print(amount)
+        self.game.canvas.zoom_level = amount
+        self.game.canvas.redraw()
+    def clicked_zoom_canvas(self, event):
+        pass
+        y = event.y
+        x = event.x
+        zoom = round((y/(self.game.canvas.phys_height/60))-30)
+        
+       # self.zoom_canvas.move(self.current_zoom_indicator, 5, round((zoom+30)*(self.game.canvas.phys_height/60)))
+        print(self.current_zoom_indicator, 5, round(y))
+        self.zoom_canvas.move(self.current_zoom_indicator, x, y)
+        self.game.canvas.zoom_level = zoom
+        self.game.canvas.redraw()
+        print(zoom)
+        #self.canvas.bind("<Button-1>", self.clicked_canvas)
+    #def onObjectClick(self, event):
+    #    which_object = event.widget.find_closest(event.x, event.y)
+>>>>>>> ee6b232f69c961ff2dae4cdfc6997c953f173616
 class SpaceCanvas(tk.Canvas):
     def __init__(self, game, parent):
         self.game = game
