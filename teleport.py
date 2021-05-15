@@ -157,21 +157,18 @@ class PlanetFrame(tk.Frame):
         self.current_planet.set("earth")
         self.label = tk.Label(self, textvariable=self.current_planet)
         self.label.pack(side="left")
-        self.slider = tk.Frame(self)
-        self.temp = tk.StringVar()
-        self.temp.set("This is the slider label")
-        self.slider_label = tk.Label(self.slider, textvariable=self.temp)
-        self.slider.pack(side="top")
-        self.slider_label.pack(side="left")
-        #self.source_combo = ttk.Combobox(self, values=planets)
-        self.zoom_combo = ttk.Combobox(self.slider, values=list(range(-30, 30)), height=40, width=3)
-        self.zoom_combo.pack(side="left")
-        self.zoom_buttons = {}
-        self.zoom_canvas = tk.Canvas(self)
+        #self.slider = tk.Frame(self)
+        #self.temp = tk.StringVar()
+        #self.temp.set("This is the slider label")
+        #self.slider_label = tk.Label(self.slider, textvariable=self.temp)
+        #self.slider.pack(side="top")
+        #self.slider_label.pack(side="left")
+        #self.zoom_combo = ttk.Combobox(self.slider, values=list(range(-30, 30)), height=40, width=3)
+        #self.zoom_combo.pack(side="left")
+        #self.zoom_buttons = {}
+        self.zoom_canvas = tk.Canvas(self.root)
         self.zoom_canvas.config(width=70, height=self.game.canvas.phys_height, bg="black")
-#        name_cvsid = self.create_text(xl, yl, text=planet.name, fill="white", tag=f"{planet.name}_label")
-        self.zoom_canvas.pack(side="left")
-        #planned_route = self.game.canvas.create_line(phys_source_x, phys_source_y, phys_x, phys_y, fill="green", width=1)
+        self.zoom_canvas.pack(side="right")
         self.zoom_canvas.create_line(30, 0, 30, self.game.canvas.phys_height, fill="white", width=4)
         self.zoom_canvas.bind("<Button-1>", self.clicked_zoom_canvas)
         for i in range(-30, 30, 1):
@@ -188,9 +185,9 @@ class PlanetFrame(tk.Frame):
             #self.zoom_canvas.tag_bind(rect, "<ButtonPress-1>", self.clicked_zoom_canvas)
             command = partial(self.zoom, i)
             print(id(command))
-            button = tk.Button(self, text=str(i), command=command)
-            button.pack(side="top")
-            self.zoom_buttons[i] = button
+            #button = tk.Button(self, text=str(i), command=command)
+            #button.pack(side="top")
+            #self.zoom_buttons[i] = button
     def zoom(self, amount):
         print(self.game)
         print(self.game.canvas)
@@ -470,7 +467,9 @@ class SpaceCanvas(tk.Canvas):
         xr = x_coord + radius
         yr = y_coord + radius
         planet_cvsid = self.create_oval(phys_x_topleft, phys_y_topleft, phys_x_bottomright, phys_y_bottomright, fill=planet.color, outline="green", tag=planet.name)
-        name_cvsid = self.create_text(xl, yl, text=planet.name, fill="white", tag=f"{planet.name}_label")
+        name_cvsid = None
+        if self.zoom_level <= 10:
+            name_cvsid = self.create_text(xl, yl, text=planet.name, fill="white", tag=f"{planet.name}_label")
         return planet_cvsid, name_cvsid
 
         name_cvsid = None

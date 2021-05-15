@@ -76,6 +76,8 @@ class GalaxyProtocol(basic.LineReceiver):
         json_payload = bytes(json.dumps(constructed_json).encode("utf-8"))
         self.transport.write(json_payload + "\r\n".encode("utf-8"))
         for p in self.factory.planets:
+            print(len(self.factory.planets))
+            print(f"amount of suns: {len(list(filter(lambda x: x.is_star, self.factory.planets)))}")
             p.change_owner(self.player)
             self.send_planet(p, self.player)
 
@@ -119,9 +121,13 @@ class GalaxyProtocol(basic.LineReceiver):
 
 class GalaxyFactory(protocol.ServerFactory):
     def __init__(self):
-        for i in range(100):
+        for i in range(10000):
             #print(f"solar system #{i}")
-            self.create_solar_system()
+            num_planets = None
+            if i > 100:
+                num_planets = 0
+            self.create_solar_system(num_planets)
+            print(f"created system #{i}")
             pass
     protocol = GalaxyProtocol
     players = []
@@ -182,8 +188,11 @@ class GalaxyFactory(protocol.ServerFactory):
         p_id += 1
         planets.append(planet)
 
-    def create_solar_system(self):
+    def create_solar_system(self, num_planets=None):
         amount = random.randrange(3, 12)
+        if num_planets is not None:
+            amount = num_planets + 1 # sun
+        print(f"amount is {amount}")
         distances = [0]
         for i in range(amount-1):
             number = random.randrange(100, 4000)
@@ -192,8 +201,10 @@ class GalaxyFactory(protocol.ServerFactory):
             distances.append(number)
 #        distances = [0] + [lambda x: random.randrange(4000) for x in range(amount-1)]
         names = ["star"] + ["a" for i in range(amount-1)]
-        star_x = random.randrange(1000000000000)
-        star_y = random.randrange(1000000000000)
+        size_of_galaxy = 10000000000000
+        star_x = random.randrange(size_of_galaxy)
+        star_y = random.randrange(size_of_galaxy)
+        print(f"coords are {(star_x, star_y)}")
         star = None
         for i in range(amount):
             #print(i)
@@ -234,6 +245,7 @@ class GalaxyFactory(protocol.ServerFactory):
             self.planet_ids[self.p_id] = planet
             self.p_id += 1
             self.planets.append(planet)
+            print(len(self.planets))
 #    amount = 9 
 #    distances = [0, 40, 70, 100, 150, 520, 950, 1920, 3000]
 #    names = ["sun", "mercury", "venus", "earth", "mars", "jupiter", "saturn", "uranus", "neptune"]
