@@ -69,12 +69,21 @@ class Player(object):
 
 class GalaxyProtocol(basic.LineReceiver):
     def connectionMade(self):
+        print("begin")
         self.transport.write(b"you've made a connection\r\n")
         self.player = self.factory.add_player(self)
         planets_owned = [p.planet_id for p in self.player.planets_owned]
         constructed_json = {"MESSAGE_TYPE": "PLANETS_OWNED_INFO", "planets": planets_owned, "PLAYER": self.player.uid}
         json_payload = bytes(json.dumps(constructed_json).encode("utf-8"))
         self.transport.write(json_payload + "\r\n".encode("utf-8"))
+        all_planets_list = []
+        for p in self.factory.planets:
+            all_planets_list.append((p.planet_id, p.x, p.y, p.radius, p.color, p.is_star))
+        message_dict = {"MESSAGE_TYPE": "STAR_LIST", "ITEMS": all_planets_list}
+        message = bytes((json.dumps(message_dict) + "\r\n").encode("utf-8"))
+        self.player.protocol.sendLine(message)
+        print("done")
+        return
         for p in self.factory.planets:
             print(len(self.factory.planets))
             print(f"amount of suns: {len(list(filter(lambda x: x.is_star, self.factory.planets)))}")

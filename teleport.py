@@ -264,22 +264,34 @@ class SpaceCanvas(tk.Canvas):
             planned_obj = self.create_planned_line(shipment)
             line_obj = self.create_shipment_line(shipment)
             self.shipment_ids[shipment] = [planned_obj, line_obj, None]
-
+        print("starting")
         for p in self.game.planets:
             if not (p.is_star or self.zoom_level <= -1): 
                 continue
-            x, y = self.virt_to_phys(p.x, p.y)
+            if not ((self.x - self.virt_width/2 <= p.x < self.x + self.virt_width/2) or \
+                (self.y - self.virt_height/2 <= p.y < self.y + self.virt_height/2)):
+                    continue
+            print("a")
+                
+            #x, y = self.virt_to_phys(p.x, p.y)
+            print("b")
             planet_cvsid = None
             name_cvsid = None
-            orbit_cvsid = self.draw_orbit(p)
-            if 0 <= x < self.phys_width and 0 <= y < self.phys_height:
-                planet_cvsid, name_cvsid = self.draw_planet(p)
-            
+            if self.zoom_level <= 2:
+                orbit_cvsid = self.draw_orbit(p)
+            orbit_cvsid = None
+            print("c")
+
+            #if 0 <= x < self.phys_width and 0 <= y < self.phys_height:
+            planet_cvsid, name_cvsid = self.draw_planet(p)
+            print("d")
             if any((planet_cvsid, name_cvsid, orbit_cvsid)):
                 self.canvas_ids[p] = (planet_cvsid, name_cvsid, orbit_cvsid)
+            print("e")
             if name_cvsid:
                 self.tag_bind(planet_cvsid, "<ButtonPress-1>", self.onObjectClick)
                 self.tag_bind(name_cvsid, "<ButtonPress-1>", self.onObjectClick)
+        print("ending")
     
     def draw_orbit(self, planet):
         draw_orbit = False
@@ -541,7 +553,13 @@ class Application():
                 except:
                     continue
                 message_type = message_dict.get("message_type")
-                if message_type == "planet_info":
+                if message_type == "star_list":
+                    the_list = message_dict.get("items")
+                    for i in the_list:
+                        planet_id, x, y, radius, color, is_star = i
+                        planet = Planet(self, x, y, radius, "unknown", color, planet_id, is_star, None)
+                        self.planets.append(planet)
+                elif message_type == "planet_info":
                     
                     x = message_dict.get("x")
                     y = message_dict.get("y")
