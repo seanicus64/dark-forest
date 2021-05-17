@@ -8,6 +8,7 @@ import datetime
 
 from twisted.internet import protocol, reactor, endpoints, task, defer
 from twisted.protocols import basic
+from convert import generate
 #random.seed(0)
 class Planet:
     def __init__(self, x, y, radius, name, color, is_star=False, parent=None):
@@ -130,7 +131,8 @@ class GalaxyProtocol(basic.LineReceiver):
 
 class GalaxyFactory(protocol.ServerFactory):
     def __init__(self):
-        for i in range(10000):
+        self.density_map = generate()
+        for i in range(30000):
             #print(f"solar system #{i}")
             num_planets = None
             if i > 100:
@@ -210,9 +212,23 @@ class GalaxyFactory(protocol.ServerFactory):
             distances.append(number)
 #        distances = [0] + [lambda x: random.randrange(4000) for x in range(amount-1)]
         names = ["star"] + ["a" for i in range(amount-1)]
-        size_of_galaxy = 10000000000000
-        star_x = random.randrange(size_of_galaxy)
-        star_y = random.randrange(size_of_galaxy)
+        size_of_galaxy = 10000000000000 # ten trillion
+        k = 0
+        density_prob_dict = {0xc6: .05, 0x12: .2, 0xb4: .4, 0x8d: .95}
+        while k <= 1000:
+            
+            star_x = random.randrange(size_of_galaxy)
+            star_y = random.randrange(size_of_galaxy)
+            quadrant_density = self.density_map[int(star_y/10000000000)][int(star_x/10000000000)]
+            print(quadrant_density)
+            rand = random.random()
+            prob = density_prob_dict.get(quadrant_density, 0)
+            if  (rand < prob ):
+                print(f"k: {k}")
+                break
+                
+#            print(quadrant)
+            k += 1
         print(f"coords are {(star_x, star_y)}")
         star = None
         for i in range(amount):

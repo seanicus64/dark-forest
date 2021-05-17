@@ -239,7 +239,7 @@ class SpaceCanvas(tk.Canvas):
         self.delete("all")
         self.virt_width = self.phys_width * self.zoom_factor ** self.zoom_level * 1000000
         self.virt_height = self.phys_height * self.zoom_factor ** self.zoom_level * 1000000
-        self.create_image(0, 0, image=self.space_image, anchor=tk.NW)
+        #self.create_image(0, 0, image=self.space_image, anchor=tk.NW)
         up = tk.Button(self.root, text="up", command=self.move_up)
         down = tk.Button(self.root, text="down", command=self.move_down)
         left = tk.Button(self.root, text="left", command=self.move_left)
@@ -472,15 +472,17 @@ class SpaceCanvas(tk.Canvas):
         if phys_x_bottomright - phys_x_topleft <= 4:
             planet_coords = self.virt_to_phys(planet.x, planet.y)
             phys_x_topleft, phys_y_topleft  = planet_coords[0] - 2, planet_coords[1] - 2
+            phys_x_topleft, phys_y_topleft  = planet_coords[0] - 1, planet_coords[1] - 1
             phys_x_bottomright, phys_y_bottomright = planet_coords[0] + 2, planet_coords[1] + 2
+            phys_x_bottomright, phys_y_bottomright = planet_coords[0] + 1, planet_coords[1] + 1
 
         xl = x_coord - radius
         yl = y_coord - radius
         xr = x_coord + radius
         yr = y_coord + radius
-        planet_cvsid = self.create_oval(phys_x_topleft, phys_y_topleft, phys_x_bottomright, phys_y_bottomright, fill=planet.color, outline="green", tag=planet.name)
+        planet_cvsid = self.create_oval(phys_x_topleft, phys_y_topleft, phys_x_bottomright, phys_y_bottomright, fill=planet.color, outline="", tag=planet.name)
         name_cvsid = None
-        if self.zoom_level <= 10:
+        if self.zoom_level <= 8:
             name_cvsid = self.create_text(xl, yl, text=planet.name, fill="white", tag=f"{planet.name}_label")
         return planet_cvsid, name_cvsid
 
@@ -633,7 +635,7 @@ class Application():
         xr = planet.x + planet.radius
         yl = planet.y - planet.radius
         yr = planet.y + planet.radius
-        self.canvas.create_oval(xl, yl, xr, yr, fill=planet.color, outline="black")
+        self.canvas.create_oval(xl, yl, xr, yr, fill=planet.color, outline="")
         self.canvas.create_text(xl, yl-10, text=planet.name, fill="white")
 
     def draw_map(self):
