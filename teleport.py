@@ -93,7 +93,7 @@ class Shipment_Form(tk.Toplevel):
         self.dest_combo = ttk.Combobox(self, values=planets)
         self.dest_combo.configure(state="disabled")
         self.source_combo.grid()
-        self.canvas = SpaceCanvas(self)
+        #self.canvas = SpaceCanvas(self)
         self.dest_combo.grid()
         self.source_combo.bind("<<ComboboxSelected>>", self._make_form)
         self.dependent = tk.Frame(self)
@@ -126,6 +126,7 @@ class Shipment_Form(tk.Toplevel):
         dest_name = self.dest_combo.get()
         self.dest_planet = self.game.get_planet_by_name(dest_name)
         source, dest = self.source_planet, self.dest_planet
+        print(source, dest)
         print(f"engine type: {self.engine_var.get()}")
         self.engine_type = self.engine_var.get()
         if not self.engine_type:
@@ -146,7 +147,9 @@ class Shipment_Form(tk.Toplevel):
         message = json.dumps(message_dict) + "\r\n"
         message = bytes(message.encode("utf-8"))
         self.game.socket.send(message)
+        print("we sent the message", message)
         self.game.register_ship(self, self.ship)
+        print("we're sending the shipment")
 
 class PlanetFrame(tk.Frame):
     def __init__(self, game):
@@ -406,7 +409,12 @@ class SpaceCanvas(tk.Canvas):
         dest_x, dest_y = shipment.dest.x, shipment.dest.y
         phys_source_x, phys_source_y = self.virt_to_phys(source_x, source_y)
         phys_x, phys_y = self.virt_to_phys(dest_x, dest_y)
-        planned_route = self.game.canvas.create_line(phys_source_x, phys_source_y, phys_x, phys_y, fill="green", width=1)
+        to_which_side_viewing_from_source = None
+        to_which_side_viewing_from_dest = None
+        if phys_source_x <= dest_source_y:
+            # not west
+            pass
+        planned_route = self.game.canvas.create_line(phys_source_x, phys_source_y, phys_x, phys_y, fill="green", width=3)
         # highest length is about 42.5billion
         # dont go over 10k objects
         return planned_route
@@ -559,7 +567,10 @@ class Application():
                     the_list = message_dict.get("items")
                     for i in the_list:
                         planet_id, x, y, radius, color, is_star = i
-                        planet = Planet(self, x, y, radius, "unknown", color, planet_id, is_star, None)
+                        name = ""
+                        for i in range(10):
+                            name += random.choice("abcdefghijklmnopqrstuvwxyz") 
+                        planet = Planet(self, x, y, radius, name, color, planet_id, is_star, None)
                         self.planets.append(planet)
                 elif message_type == "planet_info":
                     
