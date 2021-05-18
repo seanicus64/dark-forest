@@ -403,6 +403,9 @@ class SpaceCanvas(tk.Canvas):
         phys_source_x, phys_source_y = self.virt_to_phys(source_x, source_y)
         phys_x, phys_y = self.virt_to_phys(dest_x, dest_y)
         
+        # Almost all of the following code creates a line segment ending at the 
+        # visible border, if needed.  Otherwise, it acts glitchy when zoomed in
+        # too far because the line is way too long.
         min_x = 0
         min_y = 0
         max_x = self.phys_width
@@ -414,9 +417,9 @@ class SpaceCanvas(tk.Canvas):
         m = (phys_y - phys_source_y) / (phys_x - phys_source_x)
         b = phys_y - (m * phys_x)
         top_x_intersect = (min_y-b)/m
-        bottom_x_intersect = (max_y-b)/m # wrong?
+        bottom_x_intersect = (max_y-b)/m
         left_y_intersect = (m * min_x) + b
-        right_y_intersect = (m * max_x) + b # also wrong?!
+        right_y_intersect = (m * max_x) + b
 
         points = []
 
@@ -439,6 +442,13 @@ class SpaceCanvas(tk.Canvas):
                 points.append((min_x, left_y_intersect))
             if (min_y <= right_y_intersect < max_y):
                 points.append((max_x, right_y_intersect))
+            # s is source, d is destination, 
+            #A and B are intercepts along the visible border:
+            # |                          |
+            # A         s                B          d
+            # |                          |
+            # How do you determine if you should draw line segment sA or sB?
+            # measure distance of Ad and Bd...whichever is smaller is the correct one.
             possible_second_points = points.copy()
             ignore_point = None
             if source_visible:
