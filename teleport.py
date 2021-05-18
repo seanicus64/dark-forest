@@ -267,34 +267,27 @@ class SpaceCanvas(tk.Canvas):
             planned_obj = self.create_planned_line(shipment)
             line_obj = self.create_shipment_line(shipment)
             self.shipment_ids[shipment] = [planned_obj, line_obj, None]
-        print("starting")
         for p in self.game.planets:
             if not (p.is_star or self.zoom_level <= -1): 
                 continue
             if not ((self.x - self.virt_width/2 <= p.x < self.x + self.virt_width/2) or \
                 (self.y - self.virt_height/2 <= p.y < self.y + self.virt_height/2)):
                     continue
-            print("a")
                 
             #x, y = self.virt_to_phys(p.x, p.y)
-            print("b")
             planet_cvsid = None
             name_cvsid = None
             if self.zoom_level <= 2:
                 orbit_cvsid = self.draw_orbit(p)
             orbit_cvsid = None
-            print("c")
 
             #if 0 <= x < self.phys_width and 0 <= y < self.phys_height:
             planet_cvsid, name_cvsid = self.draw_planet(p)
-            print("d")
             if any((planet_cvsid, name_cvsid, orbit_cvsid)):
                 self.canvas_ids[p] = (planet_cvsid, name_cvsid, orbit_cvsid)
-            print("e")
             if name_cvsid:
                 self.tag_bind(planet_cvsid, "<ButtonPress-1>", self.onObjectClick)
                 self.tag_bind(name_cvsid, "<ButtonPress-1>", self.onObjectClick)
-        print("ending")
     
     def draw_orbit(self, planet):
         draw_orbit = False
@@ -409,12 +402,57 @@ class SpaceCanvas(tk.Canvas):
         dest_x, dest_y = shipment.dest.x, shipment.dest.y
         phys_source_x, phys_source_y = self.virt_to_phys(source_x, source_y)
         phys_x, phys_y = self.virt_to_phys(dest_x, dest_y)
-        to_which_side_viewing_from_source = None
-        to_which_side_viewing_from_dest = None
-        if phys_source_x <= dest_source_y:
-            # not west
-            pass
-        planned_route = self.game.canvas.create_line(phys_source_x, phys_source_y, phys_x, phys_y, fill="green", width=3)
+        
+        min_x = 0
+        min_y = 0
+        max_x = self.phys_width
+        max_y = self.phys_height
+        intersects_top = False
+        intersects_left = False
+        intersects_right = False
+        intersects_bottom = False
+        m = (phys_y - phys_source_y) / (phys_x - phys_source_x)
+        b = phys_y - (m * phys_x)
+        top_x_intersect = (min_y-b)/m
+        bottom_x_intersect = (max_y-b)/m # wrong?
+        left_y_intersect = (m * min_x) + b
+        right_y_intersect = (m * max_x) + b # also wrong?!
+
+        points = []
+
+        source_visible = False
+        dest_visible = False
+        if ((phys_source_x not in (min_x, max_x)) and (phys_source_y not in (min_y, max_y))) and \
+                        (min_x <= phys_source_x < max_x) and (min_y <= phys_source_y < max_y):
+            source_visible = True
+            points.append((phys_source_x, phys_source_y))
+        if ((phys_x not in (min_x, max_x)) and (phys_y not in (min_y, max_y))) and \
+                            (min_x <= phys_x < max_x) and (min_y <= phys_y < max_y):
+            dest_visible = True
+            points.append((phys_x, phys_y))
+        if not all((source_visible, dest_visible)):
+            if (min_x <= top_x_intersect < max_x):
+                points.append((top_x_intersect, min_y))
+            if (min_x <= bottom_x_intersect < max_x):
+                points.append((bottom_x_intersect, max_y))
+            if (min_y <= left_y_intersect < max_y):
+                points.append((min_x, left_y_intersect))
+            if (min_y <= right_y_intersect < max_y):
+                points.append((max_x, right_y_intersect))
+            possible_second_points = points.copy()
+            ignore_point = None
+            if source_visible:
+                ignore_point = (phys_source_x, phys_source_y)
+                other_point = (phys_x, phys_y)
+            elif dest_visible:
+                ignore_point = (phys_x, phys_y)
+                other_point = (phys_source_x, phys_source_y)
+            if ignore_point:
+                possible_second_points.remove(ignore_point)
+                possible_second_points = sorted(possible_second_points, key=lambda x: self.game.find_distance(x[0], x[1], other_point[0], other_point[1]))
+                # Now there are just two points in our list.
+                points.remove(possible_second_points[-1])
+        planned_route = self.game.canvas.create_line(points[0][0], points[0][1], points[1][0], points[1][1], fill="green", width=3)
         # highest length is about 42.5billion
         # dont go over 10k objects
         return planned_route
