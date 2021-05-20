@@ -433,6 +433,7 @@ class SpaceCanvas(tk.Canvas):
                             (min_x <= phys_x < max_x) and (min_y <= phys_y < max_y):
             dest_visible = True
             points.append((phys_x, phys_y))
+        print(source_visible, dest_visible)
         if not all((source_visible, dest_visible)):
             if (min_x <= top_x_intersect < max_x):
                 points.append((top_x_intersect, min_y))
@@ -442,6 +443,8 @@ class SpaceCanvas(tk.Canvas):
                 points.append((min_x, left_y_intersect))
             if (min_y <= right_y_intersect < max_y):
                 points.append((max_x, right_y_intersect))
+            if not points:
+                return None
             # s is source, d is destination, 
             #A and B are intercepts along the visible border:
             # |                          |
@@ -457,11 +460,26 @@ class SpaceCanvas(tk.Canvas):
             elif dest_visible:
                 ignore_point = (phys_x, phys_y)
                 other_point = (phys_source_x, phys_source_y)
+            print("HERE ARE ALL THE POINTS:")
+            print(points)
+            each_points_distances = {k: list() for k in points} 
+            for p in points:
+#                pass
+                dist1 = self.game.find_distance(p[0], phys_source_x, p[1], phys_source_y)
+                dist2 = self.game.find_distance(p[0], phys_x, p[1], phys_y)
+                print(f"dist1: {dist1}, dist2: {dist2})")
+                each_points_distances[p] = [dist1, dist2] 
+            if each_points_distances[points[0]][0] < each_points_distances[points[1]][0] and each_points_distances[points[0]][1] < each_points_distances[points[1]][1]:
+                return None
+
             if ignore_point:
                 possible_second_points.remove(ignore_point)
                 possible_second_points = sorted(possible_second_points, key=lambda x: self.game.find_distance(x[0], x[1], other_point[0], other_point[1]))
                 # Now there are just two points in our list.
                 points.remove(possible_second_points[-1])
+        print(points)
+#        if not all([type(p) is tuple for p in points]):
+#            return None
         planned_route = self.game.canvas.create_line(points[0][0], points[0][1], points[1][0], points[1][1], fill="green", width=3)
         # highest length is about 42.5billion
         # dont go over 10k objects
