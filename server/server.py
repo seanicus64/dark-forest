@@ -5,11 +5,15 @@ import builtins
 import math
 import time
 import datetime
-
-from twisted.internet import protocol, reactor, endpoints, task, defer
-from twisted.protocols import basic
+import sys
+#from twisted.python import log
+from twisted.internet import reactor
+#from twisted.internet import protocol, reactor, endpoints, task, defer
+#from twisted.internet import reactor
+#from twisted.protocols import basic
+from autobahn.twisted.websocket import WebSocketServerProtocol, WebSocketServerFactory
 from convert import generate
-#random.seed(0)
+random.seed(0)
 class Planet:
     def __init__(self, x, y, radius, name, color, is_star=False, parent=None):
         self.x, self.y = x, y
@@ -68,22 +72,64 @@ class Player(object):
         self.protocol = protocol
         self.planets_owned = []
 
-class GalaxyProtocol(basic.LineReceiver):
-    def connectionMade(self):
+#class GalaxyProtocol(basic.LineReceiver):
+class GalaxyProtocol(WebSocketServerProtocol):
+#    def onConnect(self, request):
+#        print(request)
+#    def onMessage(self, payload, isBinary):
+#        print(f"message: {payload}")
+##    def connectionLost(self, reason):
+##        return
+##    def dataReceived(self, data):
+##        return
+##    @staticmethod
+##    def makeConnection(x):
+##        print(x)
+##        return
+##        return
+##    def onOpen(self):
+##        return
+##        return
+##    def onClose(self, wasClean, code, reason):
+##        return
+##    pass
+#    def connectionMade(self):
+#    def __init__(self):
+#        super().__init__()
+    def connectionLost(self, reason):
+        print("test")
+    def onConnect(self, request):
         print("begin")
-        self.transport.write(b"you've made a connection\r\n")
+        print("got connection")
+#        try: 
+        print(request)
+#        self.sendMessage(bytes("gorilla".encode("utf-8")), False)
+ #       except Exception as e:
+ #           print(e)
+#        self.sendMessage(bytes("This is a bytes message".encode("utf-8")))
+        #self.sendMessage(bytes("bananarama".encode("utf-8")))
+#        print("B")
+        return
+#        self.sendMessage("bananarama".encode("utf-8"), False)
+        #return
+    def create_player(self):
+        print("bbbbbbbbbbbb")
+#        self.transport.write(b"you've made a connection\r\n")
         self.player = self.factory.add_player(self)
         planets_owned = [p.planet_id for p in self.player.planets_owned]
         constructed_json = {"MESSAGE_TYPE": "PLANETS_OWNED_INFO", "planets": planets_owned, "PLAYER": self.player.uid}
         json_payload = bytes(json.dumps(constructed_json).encode("utf-8"))
-        self.transport.write(json_payload + "\r\n".encode("utf-8"))
+        #self.transport.write(json_payload + "\r\n".encode("utf-8")) XXX TODO
         all_planets_list = []
         for p in self.factory.planets:
             all_planets_list.append((p.planet_id, p.x, p.y, p.radius, p.color, p.is_star))
         message_dict = {"MESSAGE_TYPE": "STAR_LIST", "ITEMS": all_planets_list}
         message = bytes((json.dumps(message_dict) + "\r\n").encode("utf-8"))
-        self.player.protocol.sendLine(message)
-        print("done")
+        #self.player.protocol.sendLine(message) XXX TODO
+        #self.sendMessage(bytes("hello world".encode("utf-8")))
+        self.sendMessage(message)
+        print("done, sent hello world")
+        #return
         return
         for p in self.factory.planets:
             print(len(self.factory.planets))
@@ -99,15 +145,33 @@ class GalaxyProtocol(basic.LineReceiver):
         if planet.name in "sun,mercury,venus,earth,mars,jupiter,saturn,uranus,neptune".split(","):
             print(planet.name)
             print(message_dict)
-        player.protocol.sendLine(message)
+#        player.protocol.sendLine(message) XXX TODO
+        self.sendMessage(message)
 
-    def lineReceived(self, line):
-        print(line)
+#    def lineReceived(self, line):
+    def onMessage(self, payload, isBinary):
+        print(payload)
+        print(isBinary)
+        print(type(payload))
+        print(type(isBinary))
+#        self.sendMessage(bytes("This is a bytes message".encode("utf8")))
+
+        #self.sendMessage(payload, isBinary)
+
+        #return
+        line = payload
+        #print(line)
         try:
             line = line.decode("utf-8").strip().lower()
         except builtins.UnicodeDecodeError:
             print("error")
             return
+        print(line)
+        print(type(line))
+        if line == "cucumber":
+            print("IT IS CUCUMBER")
+            self.create_player()
+        return
         self.transport.write(f"Received line: {line}\r\n".encode("utf-8"))
         if line.strip().lower() == "quit":
             self.quit()
@@ -129,10 +193,13 @@ class GalaxyProtocol(basic.LineReceiver):
     def quit(self):
         self.transport.loseConnection()
 
-class GalaxyFactory(protocol.ServerFactory):
+#class GalaxyFactory(protocol.ServerFactory):
+class GalaxyFactory(WebSocketServerFactory):
+    protocol = GalaxyProtocol
     def __init__(self):
+        super().__init__()
         self.density_map = generate()
-        for i in range(30000):
+        for i in range(300000):
             #print(f"solar system #{i}")
             num_planets = None
             if i > 100:
@@ -140,7 +207,6 @@ class GalaxyFactory(protocol.ServerFactory):
             self.create_solar_system(num_planets)
             print(f"created system #{i}")
             pass
-    protocol = GalaxyProtocol
     players = []
     planets = []
     amount = random.randrange(5, 30)
@@ -310,6 +376,7 @@ class GalaxyFactory(protocol.ServerFactory):
 #        planets.append(planet)
         
     def send_arrival_message(self, deferred, ship):
+        print("sending arrival")
         owner = ship.dest.owner
         message_dict = {"MESSAGE_TYPE": "ARRIVAL", "FROM": 2, "MANIFEST": ship.manifest}
         message = json.dumps(message_dict)
@@ -354,8 +421,10 @@ class GalaxyFactory(protocol.ServerFactory):
         self.uids[player.uid] = player
         return player
         
-galaxyEndpoint = endpoints.serverFromString(reactor, "tcp:7777")
-galaxyEndpoint.listen(GalaxyFactory())
+#galaxyEndpoint = endpoints.serverFromString(reactor, "tcp:7777")
+#galaxyEndpoint.listen(GalaxyFactory())
+factory = GalaxyFactory()
+reactor.listenTCP(9000, factory)
 reactor.run()
         
 
