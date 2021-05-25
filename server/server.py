@@ -199,7 +199,7 @@ class GalaxyFactory(WebSocketServerFactory):
     def __init__(self):
         super().__init__()
         self.density_map = generate()
-        for i in range(300000):
+        for i in range(30000):
             #print(f"solar system #{i}")
             num_planets = None
             if i > 100:
