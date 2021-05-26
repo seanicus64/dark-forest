@@ -3,6 +3,16 @@
 <head>
 </head>
 <body>
+<button id="zoom-in" onclick="zoom_in()">Zoom in</button>
+<button id="zoom-out" onclick="zoom_out()">Zoom out</button>
+<button id="pan-left" onclick="pan_left()">Pan left</button>
+<button id="pan-up" onclick="pan_up()">Pan up</button>
+<button id="pan-down" onclick="pan_down()">Pan down</button>
+<button id="pan-right" onclick="pan_right()">Pan right</button>
+<label for="label_check">Labels:</label>
+<input type="checkbox" id="label_check" onclick="toggle_labels()">
+<label for="hitbox_check">Hitboxes:</label>
+<input type="checkbox" id="hitbox_check" onclick="toggle_hitboxes()">
 <p id="status">hello world</p>
 <canvas id="canvas" width=1200 height=1200>hello world</canvas>
 <script> 
@@ -11,27 +21,54 @@ var status_ = document.getElementById("status");
 
 var canvas = document.getElementById("canvas");
 var ctx = canvas.getContext("2d");
+var zoom_level = 0;
+var phys_width = 1200;
+var phys_height = 1200;
+var zoom_factor = 2;
+var virt_x = 1000000;
+var virt_y = 1000000;
+var virt_width;
+var virt_height;
+var show_labels;
+var show_hitboxes = false;
+zoom_level = 14;
+virt_x = 5000000000000;
+virt_y = 5000000000000;
+
+
 ctx.fillStyle = "black";
 ctx.fillRect(0, 0, canvas.width, canvas.height);
 //let socket = new WebSocket("wss://javascript.info/article/websocket/demo/hello");
 let socket = new WebSocket("ws://127.0.0.1:9000")
 socket.onopen = function(e) {
-    //alert("connection established");
-    //alert("sending to server");
     console.log("connection established");
     console.log("sending to server");
 
     socket.send("cucumber");
     };
-//var celestial = {
-//    id
-//    x
-//    y
-//    radius
-//    color
-//    is_star
-//
-//}
+function toggle_labels(){
+    console.log("toggling labels");
+    var checkbox = document.getElementById("label_check");
+    if (checkbox.checked == true){
+        show_labels = true;
+        console.log("showing labels");
+        }
+    else {
+        show_labels = false;
+        console.log("hiding labels");
+        }
+    redraw();
+    }
+function toggle_hitboxes() {
+    var checkbox = document.getElementById("hitbox_check");
+    if (checkbox.checked == true) {
+        show_hitboxes = true;
+        }
+    else {
+        show_hitboxes = false;
+        }
+    redraw();
+    }
 function Celestial(id, x, y, radius, color, is_star) {
     this.id = id;
     this.x = x;
@@ -39,75 +76,164 @@ function Celestial(id, x, y, radius, color, is_star) {
     this.radius = radius;
     this.color = color;
     this.is_star = is_star;
+    this.brilliance = Math.floor(Math.random() * 10);
     this.fruit = "banana";
+
+}
+class Celest {
+    constructor(id, x, y, radius, color, is_star) {
+        this.id = id;
+        this.x = x;
+        this.y = y;
+        this.radius = radius;
+        this.color = color;
+        this.is_star = is_star;
+        this.brilliance = Math.floor(Math.random() * 10);
+        this.banana();
+        }
+    banana() {
+        console.log("I like bananas");
+        //name = "apple";
+
+        var amount_of_letters = Math.floor(Math.random()*8) + 4;
+        console.log(amount_of_letters);
+        this.name = "";
+        var i = 0;
+        var temp;
+        var letter;
+        var alphabet = "abcdefghijklmnopqrstuvwxyz";
+        var which_letter;
+        var name_letters = [];
+        while (i<amount_of_letters){
+            which_letter = Math.floor(Math.random()*26)
+            console.log(i, alphabet[which_letter]);
+//            temp = name.concat(alphabet[which_letter]);
+//            console.log(temp);
+            name_letters.push(alphabet[which_letter]);
+            //name = temp;
+            //console.log(name);
+            //temp = name.concat(alphabet[which_letter]);
+            //name = temp;
+            //console.log(name);
+            i++;
+            }
+        this.name = name_letters.join("");
+        console.log(this.name);
+
+        }
+    }
+function zoom_in(){
+    zoom_level -= 1;
+    redraw();
+}
+function zoom_out(){
+    zoom_level += 1;
+    redraw();
+    }
+function pan_left(){
+    virt_x -= (virt_width/10);
+    redraw();
+}
+function pan_right(){
+    virt_x += (virt_width/10);
+    redraw();
+}
+function pan_up(){
+    virt_y-= (virt_width/10);
+    redraw();
+}
+function pan_down(){
+    virt_y+= (virt_width/10);
+    redraw();
 }
 var star_data;
 function redraw(){
-    console.log("sssssssss");
-    console.log(allstars);
-    console.log(canvas.width);
-    console.log(canvas.height);
     var pixel_height = Math.floor(10000000000000 / canvas.height);
     var pixel_width = Math.floor(10000000000000 / canvas.width);
-    console.log(pixel_height);
-    console.log(pixel_width);
-    console.log("sssssssss");
     var x;
     var y;
+    var min_virt_x, min_virt_y, max_virt_x, max_virt_y;
+    var within_x, within_y;
 
-    allstars.forEach(function(star){
-        x = Math.floor(star.x / pixel_width);
-        y = Math.floor(star.y / pixel_height);
-        
-        console.log(x);
-        make_star(x, y, star.id, star.color);
-            
-    });
+    ctx.fillStyle = "black";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    virt_width = phys_width * zoom_factor ** zoom_level * 1000000;
+    virt_height = phys_height * zoom_factor ** zoom_level * 1000000;
+    min_virt_x = virt_x - (virt_width/2);
+    min_virt_y = virt_y - (virt_height/2);
+    max_virt_x = virt_x + (virt_width/2);
+    max_virt_y = virt_y + (virt_height/2);
+
     
 
+    allstars.forEach(function(star){
+//        x = Math.floor(star.x / pixel_width);
+//        y = Math.floor(star.y / pixel_height);
+//        console.log(x);
+//        make_star(x, y, star.id, star.color);
+        //console.log(min_virt_x, star.x, max_virt_x);
+        within_x = (min_virt_x <= star.x && star.x < max_virt_x);
+        within_y = (min_virt_y <= star.y && star.y < max_virt_y);
+        //console.log(within_x, star.brilliance);
+        if (within_x && within_y && (star.brilliance +4>= zoom_level|| star.brilliance >= 0))
+        {
+            var coords;
+            coords = draw_celestial(star);
+            if (zoom_level <= 8 && show_labels == true){
+                ctx.fillText(star.name, coords[0]-20, coords[1]-5);
+                }
+            if (zoom_level <= 8 && show_hitboxes == true) {
+                console.log("drawing hitboxes");
+                ctx.strokeStyle = "white";
+                ctx.beginPath();
+                ctx.rect(coords[0]-40, coords[1]-25, 80, 50);
+                ctx.stroke();
+                }
+        }
+    });
+    status_.innerHTML = zoom_level;
+    console.log(virt_width, virt_height);
+
+}
+function draw_celestial(celestial){
+    var phys_x, phys_y;
+    var coords;
+    coords = virt_to_phys(celestial.x, celestial.y);
+    phys_x = Math.floor(coords[0]);
+    phys_y = Math.floor(coords[1]);
+    //console.log("BBBBBB");
+    //console.log(coords);
+    make_star(phys_x, phys_y, 43, celestial.color);
+    return [phys_x, phys_y]
+    
+
+
+
+}
+function virt_to_phys(x, y){
+    var new_x, new_y;
+    new_x = (x - virt_x) / (zoom_factor ** zoom_level * 1000000) + (phys_width/2);
+    new_y = (y - virt_y) / (zoom_factor ** zoom_level * 1000000) + (phys_height/2);
+    return [new_x, new_y];
 }
 function create_stars() {
-    console.log("tttttttT");
-    console.log(starlist);
-
-    console.log("tttttttT");
     var innerstring = starlist[1];
     innerstring += starlist[1][1];
     status_.innerHTML = innerstring;
     starlist.forEach(function (star){
-        var celestial = new Celestial(star[0], star[1], star[2], star[3], star[4], star[5]);
+        var celestial = new Celest(star[0], star[1], star[2], star[3], star[4], star[5]);
         allstars.push(celestial);
-        //console.log(celestial.y);
     });
 
-}
-function foo (){
-    console.log("yyyyyyyyyyyyyY");
-    console.log(this.banana);
-    banana = 30;
-    console.log(banana);
-    console.log("zzzzzzzzzzzzzz");
 }
 var starlist;
 var banana;// = 43;
 var allstars = [];
-console.log(typeof(allstars));
-console.log(banana);
-console.log(this.banana);
 
-foo();
-console.log("llllllllllll");
-console.log(banana);
-console.log("mmmmmmmmmmmmm");
 socket.onmessage = function(event) {
-    console.log(banana);
-    console.log("kkkkkkkkkkkk");
     message = `[message] Data received from server: ${event.data}`;
     star_data = JSON.parse(event.data);
     starlist = star_data["ITEMS"];
-    console.log("pppppppppp");
-    console.log(starlist);
-    console.log("ppppppppp");
     switch(star_data["MESSAGE_TYPE"]){
         case "STAR_LIST":
         {
@@ -116,16 +242,7 @@ socket.onmessage = function(event) {
             redraw();
             break;
         }
-
-
     }
-
-//    console.log(thing["MESSAGE_TYPE"]);
-//    status_.innerHTML = thing["MESSAGE_TYPE"];
-//    console.log(star_data);
-    
-//    console.log(message);
-//    status_.innerHTML = message;
     };
 socket.onclose = function(event) {
     if (event.wasClean) {
@@ -138,12 +255,6 @@ socket.onclose = function(event) {
 socket.onerror = function(error) {
     alert(`[error] ${error.message}`);
     };
-
-
-
-
-
-
 
 var x, y;
 var purple, blue, red, yellow, orange, red, white;
@@ -159,20 +270,26 @@ var color_dict = {
     yellow: [255, 255,   0,        255],
     white:  [255, 255, 255,        255],
     orange: [255, 127,   0,        255],
-
-
 }
-
-function make_star(x, y, i, color){
-    console.log(color);
-    console.log(i);
-    ctx.fillStyle = color;
+function change_color(color){
     color = color_dict[color];
-    console.log(color);
     d[0] = color[0];
     d[1] = color[1];
     d[2] = color[2];
     d[3] = color[3];
+
+}
+function make_star(x, y, i, color){
+//    console.log(color);
+//    console.log(i);
+    ctx.fillStyle = color;
+    change_color(color);
+//    color = color_dict[color];
+//    console.log(color);
+//    d[0] = color[0];
+//    d[1] = color[1];
+//    d[2] = color[2];
+//    d[3] = color[3];
 
     ctx.putImageData(image_data, x, y);
     }
@@ -183,28 +300,6 @@ var number_of_stars = 5000;
 var i = 0;
 var image_data = ctx.createImageData(1, 1);
 var d = image_data.data;
-d[0] = 255;
-d[1] = 255;
-d[2] = 0;
-d[3] = 255;
-number_of_stars = 0;
-while (i <= number_of_stars)
-{   
-    x = Math.random() * 500;
-    y = Math.random() * 500;
-    
-
-    
-    make_star(x, y, i);
-    //x++;
-    //if (x == 500)
-    //{
-    //    x = 0;
-    //    y++;
-    //}
-    i++;
-}
-make_star(x, y);
 
 
 
