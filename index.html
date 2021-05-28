@@ -14,7 +14,7 @@
 <label for="hitbox_check">Hitboxes:</label>
 <input type="checkbox" id="hitbox_check" onclick="toggle_hitboxes()">
 <p id="status">hello world</p>
-<canvas id="canvas" width=1200 height=1200>hello world</canvas>
+<canvas id="canvas" width=1000 height=1000">hello world</canvas>
 <script> 
 document.getElementById("status").innerHTML = "HELLO WRLD";
 var status_ = document.getElementById("status");
@@ -22,8 +22,8 @@ var status_ = document.getElementById("status");
 var canvas = document.getElementById("canvas");
 var ctx = canvas.getContext("2d");
 var zoom_level = 0;
-var phys_width = 1200;
-var phys_height = 1200;
+var phys_width = 1000;
+var phys_height = 1000;
 var zoom_factor = 2;
 var virt_x = 1000000;
 var virt_y = 1000000;
@@ -31,11 +31,96 @@ var virt_width;
 var virt_height;
 var show_labels;
 var show_hitboxes = false;
+var hitboxes = [];
 zoom_level = 14;
 virt_x = 5000000000000;
 virt_y = 5000000000000;
+var dragging = false;
+canvas.addEventListener("mousedown", dragStart, false);
+canvas.addEventListener("mousemove", drag, false);
+canvas.addEventListener("mouseup", dragEnd, false);
+var first_drag_position, second_drag_position;
+canvas.addEventListener("dblclick", test, false);
+canvas.addEventListener("wheel", wheeltest, false);
+function wheeltest(event) {
+    event.preventDefault();
+    console.log(event.deltaX);
+    console.log(event.deltaY);
+    console.log(event.deltaZ);
+    if (event.deltaY > 0){
+        zoom_level += 0.1;
+        redraw();
+        }
+    if (event.deltaY < 0){
+        zoom_level -= 0.2;
+        redraw();
+        }
 
+}
+function test(event) {
+    var position = getCanvasCoordinates(event);
+    console.log("successfully test");
+//    //for (hitbox_) in 
+    hitboxes.forEach(function(hb){
+        if (hb.west <= position["x"] && position["x"] < hb.east) {
+//            console.log("in x coordinates")
+            if (hb.north <= position["y"] && position["y"] < hb.south) {
+                console.log("in x and y coordinates");
+                status_.innerHTML = hb.planet.name;
+                virt_x = hb.planet.x;
+                virt_y = hb.planet.y;
+                redraw();
+                return;
+                }
+            }
+        })
+}
 
+function dragStart(event) {
+    first_drag_position = getCanvasCoordinates(event);
+    console.log("dragStart");
+    dragging = true;
+
+}
+function drag(event) {
+    if (!dragging){
+        return
+        }
+    console.log("dragging");
+
+}
+function dragEnd(event) {
+    var x_diff, y_diff;
+    console.log("dragEnd");
+    second_drag_position = getCanvasCoordinates(event);
+    console.log(first_drag_position);
+    console.log(second_drag_position);
+
+    dragging = false;
+    x_diff = second_drag_position["x"] - first_drag_position["x"];
+    y_diff = second_drag_position["y"] - first_drag_position["y"];
+    console.log(x_diff, y_diff);
+    v1 = phys_to_virt(first_drag_position["x"], first_drag_position["y"]);
+    v2 = phys_to_virt(second_drag_position["x"], second_drag_position["y"]);
+    var virt_differences = phys_to_virt(x_diff, y_diff);
+    console.log(v1);
+    console.log(v2);
+    virt_x -= (v2[0] - v1[0]);
+    virt_y -= (v2[1] - v1[1]);
+    //virt_x -= virt_differences[0];
+    //virt_y -= virt_differences[1];
+    redraw();
+
+    console.log(virt_differences);
+
+}
+function getCanvasCoordinates(event) {
+    var x, y;
+    x = event.clientX - canvas.getBoundingClientRect().left,
+    y = event.clientY - canvas.getBoundingClientRect().top;
+    return {x: x, y: y};
+    
+}
 ctx.fillStyle = "black";
 ctx.fillRect(0, 0, canvas.width, canvas.height);
 //let socket = new WebSocket("wss://javascript.info/article/websocket/demo/hello");
@@ -154,6 +239,8 @@ function redraw(){
     var y;
     var min_virt_x, min_virt_y, max_virt_x, max_virt_y;
     var within_x, within_y;
+    var hitbox_coords;
+    hitboxes = [];
 
     ctx.fillStyle = "black";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -179,22 +266,43 @@ function redraw(){
         {
             var coords;
             coords = draw_celestial(star);
+
+            
             if (zoom_level <= 8 && show_labels == true){
                 ctx.fillText(star.name, coords[0]-20, coords[1]-5);
                 }
             if (zoom_level <= 8 && show_hitboxes == true) {
+                hitbox_coords = [coords[0]-40, coords[1]-25, coords[0]+40, coords[1]+25];
+                hitbox_ = new hitbox(star, coords[0]-40, coords[1]-25, coords[0]+40, coords[1]+25);
+                console.log(hitbox_);
+                console.log(hitbox_.east);
+                hitboxes.push(hitbox_);
                 console.log("drawing hitboxes");
                 ctx.strokeStyle = "white";
                 ctx.beginPath();
                 ctx.rect(coords[0]-40, coords[1]-25, 80, 50);
+//                ctx.rect(hitbox_.east, hitbox_.north, hitbox_.west, hitbox_.south);
                 ctx.stroke();
                 }
         }
     });
     status_.innerHTML = zoom_level;
     console.log(virt_width, virt_height);
+    console.log(hitboxes);
 
 }
+class hitbox {
+    constructor(planet, west, north, east, south){
+        this.planet = planet;
+        this.west = west;
+        this.north = north;
+        this.east = east;
+        this.south = south;
+        }
+    };
+
+function getCanvasa()
+{}
 function draw_celestial(celestial){
     var phys_x, phys_y;
     var coords;
@@ -210,6 +318,17 @@ function draw_celestial(celestial){
 
 
 }
+function phys_to_virt(phys_x, phys_y){
+    var x, y;
+    console.log(phys_x, phys_width, zoom_factor, zoom_level, virt_x);
+    console.log(phys_x - (phys_width/2));
+    console.log(zoom_factor**zoom_level*1000000);
+    x = (phys_x - (phys_width/2)) * (zoom_factor**zoom_level*1000000) + virt_x;
+    y = (phys_y - (phys_height/2)) * (zoom_factor**zoom_level*1000000) + virt_y;
+//    x = phys_x * (zoom_factor**zoom_level*1000000) + virt_x;
+//    y = phys_y * (zoom_factor**zoom_level*1000000) + virt_y;
+    return [x, y]
+    }
 function virt_to_phys(x, y){
     var new_x, new_y;
     new_x = (x - virt_x) / (zoom_factor ** zoom_level * 1000000) + (phys_width/2);
