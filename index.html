@@ -15,6 +15,8 @@
 <input type="checkbox" id="hitbox_check" onclick="toggle_hitboxes()">
 <label for"reticule_check">Reticule:</label>
 <input type="checkbox" id="reticule_check" onclick="toggle_reticule()">
+<label for"grid_check">Grid:</label>
+<input type="checkbox" id="grid_check" onclick="toggle_grid()">
 <p id="status">hello world</p>
 <canvas id="canvas" width=1000 height=1000">hello world</canvas>
 <script> 
@@ -34,6 +36,7 @@ var virt_height;
 var show_labels;
 var show_hitboxes = true;
 var show_reticule = true;
+var show_grid = false;
 var hitboxes = [];
 zoom_level = 14;
 virt_x = 5000000000000;
@@ -45,6 +48,8 @@ canvas.addEventListener("mouseup", dragEnd, false);
 var first_drag_position, second_drag_position;
 canvas.addEventListener("dblclick", test, false);
 canvas.addEventListener("wheel", wheeltest, false);
+
+    
 function wheeltest(event) {
     event.preventDefault();
     if (event.deltaY > 0){
@@ -118,6 +123,56 @@ socket.onopen = function(e) {
     socket.send("cucumber");
 
     };
+function toggle_grid() {
+    if (show_grid == true) {
+        show_grid = false;}
+    else {show_grid = true}
+    redraw();
+    }
+function draw_grid(){
+    var width_exponent;
+    var i, amount_of_lines;
+    width_exponent = Math.round(Math.log10(virt_width))-1;
+    height_exponent = Math.round(Math.log10(virt_height)) - 1;
+    var virt_leftmost = virt_x - (virt_width/2);
+    var virt_rightmost = virt_x + (virt_width/2);
+    var phys_leftmost = virt_leftmost / (zoom_factor ** zoom_level * 1000000);
+
+    var virt_topmost = virt_y - (virt_height/2);
+    var virt_bottommost = virt_y + (virt_width/2);
+    var phys_topmost = virt_topmost / (zoom_factor ** zoom_level * 1000000);
+    
+    ctx.fillStyle = "rgba(51, 170, 51, .7)";
+
+    var interval_size = (10**width_exponent);
+    var which_interval_left = Math.ceil(virt_leftmost / interval_size);
+    which_interval_right = Math.floor(virt_rightmost / interval_size);
+    i = which_interval_left;
+    var phys_i;
+    while (i <= which_interval_right) {
+        phys_i = (((i*interval_size)-(virt_x - (virt_width/2))   )/(zoom_factor**zoom_level*1000000));
+        ctx.moveTo(phys_i, 0);
+        ctx.lineTo(phys_i, phys_height);
+        ctx.stroke();
+        i++;
+        }
+
+    interval_size = (10**height_exponent);
+    var which_interval_top = Math.ceil(virt_topmost / interval_size);
+    which_interval_bottom = Math.floor(virt_bottommost / interval_size);
+    i = which_interval_top;
+    var phys_i;
+    while (i <= which_interval_bottom) {
+        phys_i = (((i*interval_size)-(virt_y - (virt_height/2))   )/(zoom_factor**zoom_level*1000000));
+        ctx.moveTo(0, phys_i);
+        console.log(phys_i);
+        ctx.lineTo(phys_width, phys_i);
+        ctx.stroke();
+        i++;
+        }
+
+    
+    }
 function toggle_labels(){
     console.log("toggling labels");
     var checkbox = document.getElementById("label_check");
@@ -228,9 +283,13 @@ function redraw(){
     var within_x, within_y;
     var hitbox_coords;
     hitboxes = [];
-
+   
     ctx.fillStyle = "black";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+    //ctx.fillStyle = "red";
+    if (show_grid == true){
+        draw_grid();
+        }
     virt_width = phys_width * zoom_factor ** zoom_level * 1000000;
     virt_height = phys_height * zoom_factor ** zoom_level * 1000000;
     min_virt_x = virt_x - (virt_width/2);
@@ -297,9 +356,9 @@ function redraw(){
                         parent_star = star;
                         }
                     });
-                ctx.strokeStyle = "blue";
+                ctx.strokeStyle = "gray";
                 ctx.beginPath();
-                var radius = Math.round(parent_star.radius / (zoom_factor ** zoom_level * 1000000));
+                var radius = parent_star.radius / (zoom_factor ** zoom_level * 1000000);
                 var star_coords = virt_to_phys(parent_star.x, parent_star.y);
                 var planet_coords = virt_to_phys(celestial.x, celestial.y);
                 radius = Math.round(Math.sqrt((star_coords[0] - planet_coords[0])**2 + (star_coords[1] - planet_coords[1])**2));
