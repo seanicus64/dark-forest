@@ -122,7 +122,7 @@ class GalaxyProtocol(WebSocketServerProtocol):
         #self.transport.write(json_payload + "\r\n".encode("utf-8")) XXX TODO
         all_planets_list = []
         for p in self.factory.planets:
-            all_planets_list.append((p.planet_id, p.x, p.y, p.radius, p.color, p.is_star))
+            all_planets_list.append((p.planet_id, p.x, p.y, p.radius, p.color, p.is_star, p.parent.planet_id if hasattr(p.parent, "planet_id") else None))
         message_dict = {"MESSAGE_TYPE": "STAR_LIST", "ITEMS": all_planets_list}
         message = bytes((json.dumps(message_dict) + "\r\n").encode("utf-8"))
         #self.player.protocol.sendLine(message) XXX TODO
