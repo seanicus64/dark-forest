@@ -6,11 +6,7 @@ import math
 import time
 import datetime
 import sys
-#from twisted.python import log
 from twisted.internet import reactor
-#from twisted.internet import protocol, reactor, endpoints, task, defer
-#from twisted.internet import reactor
-#from twisted.protocols import basic
 from autobahn.twisted.websocket import WebSocketServerProtocol, WebSocketServerFactory
 from convert import generate
 random.seed(0)
@@ -74,44 +70,10 @@ class Player(object):
 
 #class GalaxyProtocol(basic.LineReceiver):
 class GalaxyProtocol(WebSocketServerProtocol):
-#    def onConnect(self, request):
-#        print(request)
-#    def onMessage(self, payload, isBinary):
-#        print(f"message: {payload}")
-##    def connectionLost(self, reason):
-##        return
-##    def dataReceived(self, data):
-##        return
-##    @staticmethod
-##    def makeConnection(x):
-##        print(x)
-##        return
-##        return
-##    def onOpen(self):
-##        return
-##        return
-##    def onClose(self, wasClean, code, reason):
-##        return
-##    pass
-#    def connectionMade(self):
-#    def __init__(self):
-#        super().__init__()
     def connectionLost(self, reason):
         print("test")
     def onConnect(self, request):
-        print("begin")
-        print("got connection")
-#        try: 
-        print(request)
-#        self.sendMessage(bytes("gorilla".encode("utf-8")), False)
- #       except Exception as e:
- #           print(e)
-#        self.sendMessage(bytes("This is a bytes message".encode("utf-8")))
-        #self.sendMessage(bytes("bananarama".encode("utf-8")))
-#        print("B")
         return
-#        self.sendMessage("bananarama".encode("utf-8"), False)
-        #return
     def create_player(self):
         print("bbbbbbbbbbbb")
 #        self.transport.write(b"you've made a connection\r\n")
@@ -202,8 +164,8 @@ class GalaxyFactory(WebSocketServerFactory):
         for i in range(30000):
             #print(f"solar system #{i}")
             num_planets = None
-            if i > 100:
-                num_planets = 0
+            #if i > 100:
+            #    num_planets = 0
             self.create_solar_system(num_planets)
             print(f"created system #{i}")
             pass
@@ -267,6 +229,7 @@ class GalaxyFactory(WebSocketServerFactory):
 
     def create_solar_system(self, num_planets=None):
         amount = random.randrange(3, 12)
+        amount = random.randrange(1, 3)
         if num_planets is not None:
             amount = num_planets + 1 # sun
         print(f"amount is {amount}")
