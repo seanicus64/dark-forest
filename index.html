@@ -3,22 +3,42 @@
 <head>
 </head>
 <body>
-    <button id="zoom-in" onclick="zoom_in()">Zoom in</button>
-    <button id="zoom-out" onclick="zoom_out()">Zoom out</button>
-    <button id="pan-left" onclick="pan_left()">Pan left</button>
-    <button id="pan-up" onclick="pan_up()">Pan up</button>
-    <button id="pan-down" onclick="pan_down()">Pan down</button>
-    <button id="pan-right" onclick="pan_right()">Pan right</button>
-    <label for="label_check">Labels:</label>
-    <input type="checkbox" id="label_check" onclick="toggle_labels()">
-    <label for="hitbox_check">Hitboxes:</label>
-    <input type="checkbox" id="hitbox_check" onclick="toggle_hitboxes()">
-    <label for="reticule_check">Reticule:</label>
-    <input type="checkbox" id="reticule_check" onclick="toggle_reticule()">
-    <label for="grid_check">Grid:</label>
-    <input type="checkbox" id="grid_check" onclick="toggle_grid()">
-    <p id="status">hello world</p>
-    <canvas id="canvas" width=1000 height=1000">hello world</canvas>
-    <script src="dark-forest.js"></script>
+    <div style="width: 100%; overflow:auto;">
+        <div style="float: left; width:50%" id="left">
+            <button id="zoom-in" onclick="zoom_in()">Zoom in</button>
+            <button id="zoom-out" onclick="zoom_out()">Zoom out</button>
+            <button id="pan-left" onclick="pan_left()">Pan left</button>
+            <button id="pan-up" onclick="pan_up()">Pan up</button>
+            <button id="pan-down" onclick="pan_down()">Pan down</button>
+            <button id="pan-right" onclick="pan_right()">Pan right</button>
+            <button id="add-bookmark" onclick="add_bookmark2()">Add bookmark</button>
+            <label for="label_check">Labels:</label>
+            <input type="checkbox" id="label_check" onclick="toggle_labels()">
+            <label for="hitbox_check">Hitboxes:</label>
+            <input type="checkbox" id="hitbox_check" onclick="toggle_hitboxes()">
+            <label for="reticule_check">Reticule:</label>
+            <input type="checkbox" id="reticule_check" onclick="toggle_reticule()">
+            <label for="grid_check">Grid:</label>
+            <input type="checkbox" id="grid_check" onclick="toggle_grid()">
+            <p id="status">hello world</p>
+            <canvas id="canvas" width=1000 height=1000">hello world</canvas>
+            <script src="dark-forest.js"></script>
+        </div>
+        
+        <div style="float:right; width: 45%; background-color:lightblue" id="right">
+            <div id="bookmarks">
+                
+            </div>
+            <p>hello world!</p>
+            <div>
+                <p id="celestial_name">Planet</p>
+                <p id="celestial_info">test</p>
+
+
+
+
+            </div>
+        </div>
+    </div>
 </body>
 </html>

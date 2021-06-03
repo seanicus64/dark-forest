@@ -16,6 +16,8 @@ var show_hitboxes = true;
 var show_reticule = true;
 var show_grid = false;
 var hitboxes = [];
+var bookmarks = [];
+var focused_celestial = null;
 zoom_level = 14;
 virt_x = 5000000000000;
 virt_y = 5000000000000;
@@ -28,7 +30,21 @@ canvas.addEventListener("dblclick", test, false);
 canvas.addEventListener("click", clickcanvas, false);
 canvas.addEventListener("wheel", wheeltest, false);
 
-    
+function add_bookmark(event) {
+    if(focused_celestial) {
+        bookmarks.push([focused_celestial, zoom_level]);
+        console.log("added ", focused_celestial.name, zoom_level, " to bookmarks");
+        }
+    remake_bookmarks();
+    }
+function add_bookmark2(event) {
+    if (focused_celestial) {
+        add(focused_celestial, zoom_level);
+        }
+    }
+function bookmark_buttom_press(event) {
+    console.log("pressed bookmark button", event);
+    }
 function wheeltest(event) {
     event.preventDefault();
     if (event.deltaY > 0){
@@ -48,6 +64,9 @@ function clickcanvas(event) {
         
         console.log("This is the planet", planet.name);
         status_.innerHTML = "This is the planet "  + planet.name;
+        var celestial_name = document.getElementById("celestial_name");
+        celestial_name.innerHTML = planet.name;
+        
         }
 
     }
@@ -57,6 +76,7 @@ function test(event) {
     if (!(planet == null)) {
         virt_x = planet.x;
         virt_y = planet.y;
+        focused_celestial = planet;
         redraw();
         return;
         }
@@ -372,6 +392,7 @@ function redraw(){
         }
     );
     status_.innerHTML = zoom_level;
+    console.log("finished redraw ", zoom_level, virt_x, virt_y);
 }
 
 class hitbox {
@@ -502,6 +523,47 @@ var number_of_stars = 5000;
 var i = 0;
 var image_data = ctx.createImageData(1, 1);
 var d = image_data.data;
+var html_tag;
+function add(planet, z_l) {
+    var element = document.createElement("button");
+    element.value = name;
+    element.name = name;
+    console.log(name);
+    console.log(typeof(name));
+    element.innerHTML = planet.name;
+    element.name = "banana";
+    console.log(z_l);
+    element.value = Number(z_l);
+    element.onclick = function() {
+        console.log("you've added a button");
+        focused_celestial = planet;
+        virt_x = planet.x;
+        virt_y = planet.y;
+        console.log(this.value);
+        console.log(typeof(this.value));
+        zoom_level = Number(this.value);
+        redraw();
+        console.log(zoom_level);
+        console.log(virt_x, virt_y);
+
+        }
+    var foo = document.getElementById("bookmarks");
+    foo.appendChild(element);
+
+    }
+function remake_bookmarks() {
+    var bookmarks_html = "";
+    bookmarks.forEach(function(bookmark){
+        console.log(bookmark);
+        console.log(bookmarks_html);
+        bookmarks_html += ("<button class='bookmark' onclick='bookmark_button_press()'>" + bookmark[0].name + "</button>");
+        });
+    html_tag.innerHTML = bookmarks_html;
+    }
 
 
-
+window.onload = function() {
+    console.log("finished loading");
+    html_tag = document.getElementById("bookmarks");
+    //remake_bookmarks();
+    }
