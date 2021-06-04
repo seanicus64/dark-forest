@@ -18,9 +18,24 @@ var show_grid = false;
 var hitboxes = [];
 var bookmarks = [];
 var focused_celestial = null;
+var chunks = [];
+var i = 0;
+var j = 0;
+while (i <= 100) {
+    j = 0;
+    var this_chunk = [];
+    while (j <= 100) {
+        this_chunk.push([]);
+        j++;
+        }
+    chunks.push(this_chunk);
+    i++;
+    }
+
 zoom_level = 14;
 virt_x = 5000000000000;
 virt_y = 5000000000000;
+// 10,000,000,000,000
 var dragging = false;
 canvas.addEventListener("mousedown", dragStart, false);
 canvas.addEventListener("mousemove", drag, false);
@@ -77,6 +92,7 @@ function test(event) {
         virt_x = planet.x;
         virt_y = planet.y;
         focused_celestial = planet;
+        create_planet_dropdown(planet);
         redraw();
         return;
         }
@@ -240,6 +256,16 @@ function Celestial(id, x, y, radius, color, is_star) {
     this.brilliance = Math.floor(Math.random() * 10);
     this.fruit = "banana";
 
+//    var element = document.createElement("button");
+//    element.value = name;
+//    element.name = name;
+//    console.log(name);
+//    console.log(typeof(name));
+//    element.innerHTML = planet.name;
+//    element.name = "banana";
+//    console.log(z_l);
+//    element.value = Number(z_l);
+
 }
 class Celest {
     constructor(id, x, y, radius, color, is_star, parent_celestial) {
@@ -252,6 +278,16 @@ class Celest {
         this.parent_celestial = parent_celestial;
         this.brilliance = Math.floor(Math.random() * 10);
         this.banana();
+        this.option_element = document.createElement("option");
+        if (!(parent_celestial==undefined)) {
+            this.option_element.innerHTML = parent_celestial.name + "." + this.name;
+            }
+        else {
+            this.option_element.innerHTML = this.name;
+            }
+        var p_element = document.createElement("p");
+        this.option_element.appendChild(p_element);
+        this.option_element.name = "test";
         }
     banana() {
         var amount_of_letters = Math.floor(Math.random()*8) + 4;
@@ -453,9 +489,23 @@ function create_stars() {
     var innerstring = starlist[1];
     innerstring += starlist[1][1];
     status_.innerHTML = innerstring;
+    console.log("chunks are " , chunks);
     starlist.forEach(function (star){
         var celestial = new Celest(star[0], star[1], star[2], star[3], star[4], star[5], star[6]);
         allstars.push(celestial);
+        var x_chunk = Math.floor(celestial.x/100000000000);
+        var y_chunk = Math.floor(celestial.y/100000000000);
+        if (x_chunk < 0){
+            x_chunk = 0;
+            }
+        if (y_chunk < 0){
+            y_chunk = 0;
+            }
+        console.log("xchunk: ", x_chunk, "celestial.x: ", celestial.x, "y_chunk: ", y_chunk);
+        console.log(x_chunk, chunks[x_chunk], chunks[x_chunk][y_chunk]);
+        //return;
+        chunks[x_chunk][y_chunk].push(celestial);
+        
     });
 
 }
@@ -550,6 +600,75 @@ function add(planet, z_l) {
     var foo = document.getElementById("bookmarks");
     foo.appendChild(element);
 
+    }
+function create_planet_dropdown(celestial) {
+    var source_planet_dropdown = document.getElementById("source_planet_dropdown");
+
+//    allcelestials.forEach(function(star){
+        let x_chunk = Math.floor(celestial.x/100000000000)
+        let y_chunk = Math.floor(celestial.y/100000000000)
+        let this_chunk = chunks[x_chunk][y_chunk];
+        let leftmost = Math.max(0, x_chunk-1);
+        let rightmost = Math.min(99, x_chunk+1);
+        let topmost = Math.max(0, y_chunk-1);
+
+        let bottommost = Math.min(99, y_chunk+1);
+
+
+//        var this_chunk = chunks[Math.floor(celestial.x / 100000000000)][Math.floor(star.y/100000000000)]
+        var neighboring_chunks = []
+        let temp_x = leftmost;
+        console.log("leftmost: ", leftmost, "rightmost: ", rightmost, "topmost: ", topmost, "bottommost: ", bottommost);
+        while (temp_x <= rightmost) {
+            let temp_y = topmost;
+            while (temp_y <= bottommost) {
+                neighboring_chunks.push(chunks[temp_x][temp_y]);
+                console.log("Current: ", temp_x, temp_y);
+                console.log(neighboring_chunks);
+                temp_y++;
+                }
+            console.log("temp_x before: ", temp_x);
+            temp_x++;
+            console.log("temp_x after: ", temp_x);
+            }
+        console.log("neighboring chunks: ", neighboring_chunks);
+        let joined_array = [].concat(...neighboring_chunks);
+        console.log("joined_array: ", joined_array);
+        joined_array.sort(distance_squared);
+        console.log("sorted joined_array: ", joined_array);
+        joined_array.forEach(function(celestial2){
+            celestial2.option_element.innerHTML = celestial2.x + " " + celestial2.name + distance_squared(celestial, celestial2);
+            source_planet_dropdown.appendChild(celestial2.option_element);
+            });
+//        neighboring_chunks.forEach(function(chunk){
+//            chunk.forEach(function(celestial){
+////                console.log("celestial: ", celestial);
+//                celestial.option_element.innerHTML = celestial.x + " " + celestial.name;
+//                source_planet_dropdown.appendChild(celestial.option_element);
+//                });
+//            });
+
+
+
+        //console.log(celestial);
+        //source_planet_dropdown.appendChild(celestial.option_element);
+            
+    //this.option_element = document.createElement("option");
+        
+        
+  //      });
+    }
+function distance_squared(a, b) {
+    console.log("what");
+    console.log(focused_celestial, a, b, focused_celestial.x, focused_celestial.y, a.x, b.x);
+    a_distance = (focused_celestial.x - a.x)**2 + (focused_celestial.y - a)**2
+    b_distance = (focused_celestial.x - b.x)**2 + (focused_celestial.y - b)**2
+    console.log(a_distance, b_distance, "a and b distance")
+    return a_distance > b_distance ? -1 : 1;
+    console.log("squared formula ", "a.x: ", a.x, "b.x: " , b.x, "a.y: ", a.y, "b.y: ", b.y, "a.name: ", a.name, "b.name: ", b.name);
+    let answer = ((a.x-b.x)**2 + (a.y-b.y)**2);
+    console.log(answer, typeof(answer));
+    return answer;
     }
 function remake_bookmarks() {
     var bookmarks_html = "";
