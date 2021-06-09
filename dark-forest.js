@@ -21,6 +21,8 @@ var focused_celestial = null;
 var chunks = [];
 var i = 0;
 var j = 0;
+var active_shipments = [];
+
 while (i <= 100) {
     j = 0;
     var this_chunk = [];
@@ -70,8 +72,8 @@ function wheeltest(event) {
         zoom_level -= 0.2;
         redraw();
         }
+    }
 
-}
 function clickcanvas(event) {
     var position = getCanvasCoordinates(event);
     var planet = get_celestial_from_phys_coord(position["x"], position["y"]);
@@ -85,6 +87,7 @@ function clickcanvas(event) {
         }
 
     }
+
 function test(event) {
     var position = getCanvasCoordinates(event);
     var planet = get_celestial_from_phys_coord(position["x"], position["y"]);
@@ -96,7 +99,7 @@ function test(event) {
         redraw();
         return;
         }
-}
+    }
 
 function get_celestial_from_phys_coord(x, y) {
     var planet = null;
@@ -104,10 +107,6 @@ function get_celestial_from_phys_coord(x, y) {
         
         if (hb.west <= x && x < hb.east) {
             if (hb.north <= y && y < hb.south) {
-//                status_.innerHTML = hb.planet.name;
-//                virt_x = hb.planet.x;
-//                virt_y = hb.planet.y;
-//                redraw();
                 planet = hb.planet;
                 return;
                 }
@@ -120,17 +119,17 @@ function dragStart(event) {
     first_drag_position = getCanvasCoordinates(event);
     dragging = true;
 
-}
+    }
+
 function drag(event) {
     if (!dragging){
         return
         }
+    }
 
-}
 function dragEnd(event) {
     var x_diff, y_diff;
     second_drag_position = getCanvasCoordinates(event);
-
     dragging = false;
     x_diff = second_drag_position["x"] - first_drag_position["x"];
     y_diff = second_drag_position["y"] - first_drag_position["y"];
@@ -139,34 +138,31 @@ function dragEnd(event) {
     var virt_differences = phys_to_virt(x_diff, y_diff);
     virt_x -= (v2[0] - v1[0]);
     virt_y -= (v2[1] - v1[1]);
-    //virt_x -= virt_differences[0];
-    //virt_y -= virt_differences[1];
     redraw();
+    }
 
-
-}
 function getCanvasCoordinates(event) {
     var x, y;
     x = event.clientX - canvas.getBoundingClientRect().left,
     y = event.clientY - canvas.getBoundingClientRect().top;
     return {x: x, y: y};
-    
-}
+    }
+
 ctx.fillStyle = "black";
 ctx.fillRect(0, 0, canvas.width, canvas.height);
-//let socket = new WebSocket("wss://javascript.info/article/websocket/demo/hello");
 let socket = new WebSocket("ws://127.0.0.1:9000")
 socket.onopen = function(e) {
     console.log("connection established");
     socket.send("cucumber");
-
     };
+
 function toggle_grid() {
     if (show_grid == true) {
         show_grid = false;}
     else {show_grid = true}
     redraw();
     }
+
 function draw_grid(){
     var width_exponent;
     var i, amount_of_lines;
@@ -208,9 +204,8 @@ function draw_grid(){
         ctx.stroke();
         i++;
         }
-
-    
     }
+
 function toggle_labels(){
     console.log("toggling labels");
     var checkbox = document.getElementById("label_check");
@@ -224,6 +219,7 @@ function toggle_labels(){
         }
     redraw();
     }
+
 function toggle_hitboxes() {
     var checkbox = document.getElementById("hitbox_check");
     if (checkbox.checked == true) {
@@ -234,6 +230,7 @@ function toggle_hitboxes() {
         }
     redraw();
     }
+
 function toggle_reticule() {
     var checkbox = document.getElementById("reticule_check");
     console.log("reticule toggled");
@@ -244,8 +241,8 @@ function toggle_reticule() {
         show_reticule = false;
         }
     redraw();
-
     }
+
 function Celestial(id, x, y, radius, color, is_star) {
     this.id = id;
     this.x = x;
@@ -255,18 +252,8 @@ function Celestial(id, x, y, radius, color, is_star) {
     this.is_star = is_star;
     this.brilliance = Math.floor(Math.random() * 10);
     this.fruit = "banana";
-
-//    var element = document.createElement("button");
-//    element.value = name;
-//    element.name = name;
-//    console.log(name);
-//    console.log(typeof(name));
-//    element.innerHTML = planet.name;
-//    element.name = "banana";
-//    console.log(z_l);
-//    element.value = Number(z_l);
-
 }
+
 class Celest {
     constructor(id, x, y, radius, color, is_star, parent_celestial) {
         this.id = id;
@@ -289,6 +276,7 @@ class Celest {
         this.option_element.appendChild(p_element);
         this.option_element.name = "test";
         }
+
     banana() {
         var amount_of_letters = Math.floor(Math.random()*8) + 4;
         this.name = "";
@@ -307,31 +295,39 @@ class Celest {
 
         }
     }
+
 function zoom_in(){
     zoom_level -= 1;
     redraw();
-}
+    }
+
 function zoom_out(){
     zoom_level += 1;
     redraw();
     }
+
 function pan_left(){
     virt_x -= (virt_width/10);
     redraw();
-}
+    }
+
 function pan_right(){
     virt_x += (virt_width/10);
     redraw();
-}
+    }
+
 function pan_up(){
     virt_y-= (virt_width/10);
     redraw();
-}
+    }
+
 function pan_down(){
     virt_y+= (virt_width/10);
     redraw();
-}
+    }
+
 var star_data;
+
 function redraw(){
     var pixel_height = Math.floor(10000000000000 / canvas.height);
     var pixel_width = Math.floor(10000000000000 / canvas.width);
@@ -344,7 +340,6 @@ function redraw(){
    
     ctx.fillStyle = "black";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    //ctx.fillStyle = "red";
     if (show_grid == true){
         draw_grid();
         }
@@ -359,7 +354,6 @@ function redraw(){
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.arc(phys_width/2, phys_height/2, 30, 0, 2 * Math.PI);
-//        ctx.rect(phys_width/2-20, phys_height/2-20, 40, 40);
         ctx.stroke();
         ctx.lineWidth = 1;
         ctx.beginPath();
@@ -379,23 +373,18 @@ function redraw(){
         };
     console.log("start drawing stars");
     console.log(allstars);
-//    [].forEach(function(celestial){
     allstars.forEach(function(celestial){
-        
-        //console.log(celestial);
-        //return;
         within_x = (min_virt_x <= celestial.x && celestial.x < max_virt_x);
         within_y = (min_virt_y <= celestial.y && celestial.y < max_virt_y);
         if (within_x && within_y && (celestial.brilliance + 4 >= zoom_level|| celestial.brilliance >= 0))
         {
-            //console.log("is within");
             var coords;
             coords = draw_celestial(celestial);
 
-            
             if (zoom_level <= 8 && show_labels == true){
                 ctx.fillText(celestial.name, coords[0]-20, coords[1]-5);
                 }
+
             if (zoom_level <= 8 && show_hitboxes == true) {
                 hitbox_coords = [coords[0]-40, coords[1]-30, coords[0]+30, coords[1]+30];
                 hitbox_ = new hitbox(celestial, coords[0]-30, coords[1]-30, coords[0]+30, coords[1]+30);
@@ -405,8 +394,10 @@ function redraw(){
                 ctx.rect(coords[0]-30, coords[1]-30, 60, 60);
                 ctx.stroke();
                 }
+
             if (zoom_level <= 1 && celestial.is_star) {
                 }
+
             if (zoom_level <= 1 && celestial.parent_celestial > -1 && !(celestial.parent_celestial == null)) {
                 var parent_star;
                 allstars.forEach(function(star){
@@ -414,6 +405,7 @@ function redraw(){
                         parent_star = star;
                         }
                     });
+
                 ctx.strokeStyle = "gray";
                 ctx.beginPath();
                 var radius = parent_star.radius / (zoom_factor ** zoom_level * 1000000);
@@ -422,15 +414,64 @@ function redraw(){
                 radius = Math.round(Math.sqrt((star_coords[0] - planet_coords[0])**2 + (star_coords[1] - planet_coords[1])**2));
                 ctx.arc(star_coords[0], star_coords[1], radius, 0, Math.PI*2);
                 ctx.stroke();
-//
                 }
             }
         }
     );
+    active_shipments.forEach(function(shipment){
+        console.log("source: " , shipment.source, " dest: ", shipment.destination);
+        draw_shipment(shipment);
+        })
     status_.innerHTML = zoom_level;
     console.log("finished redraw ", zoom_level, virt_x, virt_y);
 }
 
+function draw_shipment(shipment) {
+    console.log(shipment);
+    let source_id = shipment.source;
+    let dest_id = shipment.destination;
+    var source;
+    var destination;
+
+    allstars.forEach(function(celestial){
+        if (celestial.id == source_id) {
+            source = celestial;
+            }
+        if (celestial.id == dest_id) {
+            destination = celestial;
+            }
+
+        });
+    if (!source && !destination) {
+        return
+        }
+    console.log("source: ", source, " destination: ", destination);
+
+    let source_coords = [source.x, source.y]
+    let dest_coords = [destination.x, destination.y]
+    console.log(source_coords, dest_coords);
+    let min_virt_x = virt_x - (virt_width/2)
+    let max_virt_x = virt_x + (virt_width/2)
+    let min_virt_y = virt_y - (virt_height/2);
+    let max_virt_y = virt_y + (virt_height/2);
+    console.log(min_virt_x, source_coords[0], max_virt_x);
+    console.log(min_virt_y, source_coords[1], max_virt_y);
+    if (min_virt_x <= source_coords[0] && source_coords[0] < max_virt_x  &&
+        min_virt_y <= source_coords[1] && source_coords[1] < max_virt_y &&
+        min_virt_x <= dest_coords[0] && dest_coords[0] < max_virt_x &&
+        min_virt_y <= dest_coords[1] && dest_coords[1] < max_virt_y ) {
+            
+            console.log("it's visible in the screen");
+            source_coords = virt_to_phys(source_coords[0], source_coords[1]);
+            dest_coords = virt_to_phys(dest_coords[0], dest_coords[1]);
+            console.log(source_coords, dest_coords);
+            ctx.beginPath();
+            ctx.moveTo(...source_coords);
+            ctx.lineTo(...dest_coords);
+            ctx.stroke();
+            };
+
+    }
 class hitbox {
     constructor(planet, west, north, east, south){
         this.planet = planet;
@@ -455,8 +496,6 @@ function draw_celestial(celestial){
         phys_radius = Math.round(celestial.radius / (zoom_factor ** zoom_level * 1000000));
         console.log("phys radius", phys_radius, zoom_factor, zoom_level, zoom_factor**zoom_level);
         console.log(phys_radius);
-        
-
         }
     if (phys_radius <= 1){
         make_star(phys_x, phys_y, 43, celestial.color);
@@ -468,24 +507,24 @@ function draw_celestial(celestial){
         ctx.fill();
         }
     return [phys_x, phys_y]
-    
-
-
-
 }
+
 function phys_to_virt(phys_x, phys_y){
     var x, y;
     x = (phys_x - (phys_width/2)) * (zoom_factor**zoom_level*1000000) + virt_x;
     y = (phys_y - (phys_height/2)) * (zoom_factor**zoom_level*1000000) + virt_y;
     return [x, y]
     }
+
 function virt_to_phys(x, y){
     var new_x, new_y;
     new_x = (x - virt_x) / (zoom_factor ** zoom_level * 1000000) + (phys_width/2);
     new_y = (y - virt_y) / (zoom_factor ** zoom_level * 1000000) + (phys_height/2);
     return [new_x, new_y];
 }
+
 function create_stars() {
+    console.log("in create_stars function");
     var innerstring = starlist[1];
     innerstring += starlist[1][1];
     status_.innerHTML = innerstring;
@@ -503,17 +542,16 @@ function create_stars() {
             }
         console.log("xchunk: ", x_chunk, "celestial.x: ", celestial.x, "y_chunk: ", y_chunk);
         console.log(x_chunk, chunks[x_chunk], chunks[x_chunk][y_chunk]);
-        //return;
         chunks[x_chunk][y_chunk].push(celestial);
-        
     });
-
 }
+
 var starlist;
 var banana;// = 43;
 var allstars = [];
 
 socket.onmessage = function(event) {
+    console.log("on message");
     message = `[message] Data received from server: ${event.data}`;
     star_data = JSON.parse(event.data);
     starlist = star_data["ITEMS"];
@@ -521,10 +559,14 @@ socket.onmessage = function(event) {
         case "STAR_LIST":
         {
             create_stars();
-            redraw();
+            //redraw();
             break;
+            }
+        case "SHIPMENT_ARRIVED": {
+            console.log("banana");
+            break;
+            }
         }
-    }
     };
 socket.onclose = function(event) {
     if (event.wasClean) {
@@ -592,7 +634,7 @@ function add(planet, z_l) {
         console.log(this.value);
         console.log(typeof(this.value));
         zoom_level = Number(this.value);
-        redraw();
+        //redraw();
         console.log(zoom_level);
         console.log(virt_x, virt_y);
 
@@ -603,19 +645,14 @@ function add(planet, z_l) {
     }
 function create_planet_dropdown(celestial) {
     var source_planet_dropdown = document.getElementById("source_planet_dropdown");
-
-//    allcelestials.forEach(function(star){
         let x_chunk = Math.floor(celestial.x/100000000000)
         let y_chunk = Math.floor(celestial.y/100000000000)
         let this_chunk = chunks[x_chunk][y_chunk];
         let leftmost = Math.max(0, x_chunk-1);
         let rightmost = Math.min(99, x_chunk+1);
         let topmost = Math.max(0, y_chunk-1);
-
         let bottommost = Math.min(99, y_chunk+1);
 
-
-//        var this_chunk = chunks[Math.floor(celestial.x / 100000000000)][Math.floor(star.y/100000000000)]
         var neighboring_chunks = []
         let temp_x = leftmost;
         console.log("leftmost: ", leftmost, "rightmost: ", rightmost, "topmost: ", topmost, "bottommost: ", bottommost);
@@ -640,36 +677,22 @@ function create_planet_dropdown(celestial) {
             celestial2.option_element.innerHTML = celestial2.x + " " + celestial2.name + distance_squared(celestial, celestial2);
             source_planet_dropdown.appendChild(celestial2.option_element);
             });
-//        neighboring_chunks.forEach(function(chunk){
-//            chunk.forEach(function(celestial){
-////                console.log("celestial: ", celestial);
-//                celestial.option_element.innerHTML = celestial.x + " " + celestial.name;
-//                source_planet_dropdown.appendChild(celestial.option_element);
-//                });
-//            });
-
-
-
-        //console.log(celestial);
-        //source_planet_dropdown.appendChild(celestial.option_element);
-            
-    //this.option_element = document.createElement("option");
-        
-        
-  //      });
     }
+
 function distance_squared(a, b) {
     console.log("what");
     console.log(focused_celestial, a, b, focused_celestial.x, focused_celestial.y, a.x, b.x);
-    a_distance = (focused_celestial.x - a.x)**2 + (focused_celestial.y - a)**2
-    b_distance = (focused_celestial.x - b.x)**2 + (focused_celestial.y - b)**2
+    a_distance = (focused_celestial.x - a.x)**2 + (focused_celestial.y - a.y)**2
+    b_distance = (focused_celestial.x - b.x)**2 + (focused_celestial.y - b.y)**2
     console.log(a_distance, b_distance, "a and b distance")
+    if (a_distance >= b_distance) {
+        return 1;
+        } else {
+        return -1;
+        }
     return a_distance > b_distance ? -1 : 1;
-    console.log("squared formula ", "a.x: ", a.x, "b.x: " , b.x, "a.y: ", a.y, "b.y: ", b.y, "a.name: ", a.name, "b.name: ", b.name);
-    let answer = ((a.x-b.x)**2 + (a.y-b.y)**2);
-    console.log(answer, typeof(answer));
-    return answer;
     }
+
 function remake_bookmarks() {
     var bookmarks_html = "";
     bookmarks.forEach(function(bookmark){
@@ -680,9 +703,16 @@ function remake_bookmarks() {
     html_tag.innerHTML = bookmarks_html;
     }
 
+function send_shipment() {
+    console.log("sent shipment");
+    socket.send("test");
+    var shipment = {message_type: "ship", source: 1, destination: 2000, manifest: [4,5,6,7]};
+    active_shipments.push(shipment);
+    socket.send(JSON.stringify(shipment));
+    }
 
 window.onload = function() {
+    redraw();
     console.log("finished loading");
     html_tag = document.getElementById("bookmarks");
-    //remake_bookmarks();
     }

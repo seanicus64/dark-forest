@@ -89,6 +89,8 @@ class GalaxyProtocol(WebSocketServerProtocol):
         message = bytes((json.dumps(message_dict) + "\r\n").encode("utf-8"))
         #self.player.protocol.sendLine(message) XXX TODO
         #self.sendMessage(bytes("hello world".encode("utf-8")))
+        print("the message is:", message)
+        print("that was the message")
         self.sendMessage(message)
         print("done, sent hello world")
         #return
@@ -133,12 +135,15 @@ class GalaxyProtocol(WebSocketServerProtocol):
         if line == "cucumber":
             print("IT IS CUCUMBER")
             self.create_player()
-        return
-        self.transport.write(f"Received line: {line}\r\n".encode("utf-8"))
+        elif line == "test":
+            print("DOING TEST")
+    #    return
+        #self.transport.write(f"Received line: {line}\r\n".encode("utf-8"))
         if line.strip().lower() == "quit":
             self.quit()
         try:
             message = json.loads(line)
+            print(f"message: {message}")
             message_type = message.get("message_type")
             if message_type == "ship":
                 source_id = message["source"]
@@ -146,10 +151,12 @@ class GalaxyProtocol(WebSocketServerProtocol):
                 source = self.factory.planet_ids[source_id]
                 dest = self.factory.planet_ids[dest_id]
                 manifest = message["manifest"]
-                d, ship = self.factory.try_send_shipment(source=source, dest=dest, ship_type="passenger", engine_type="gen3", manifest=manifest)
-                d.addCallback(self.factory.send_arrival_message, ship)
+                #d, ship = self.factory.try_send_shipment(source=source, dest=dest, ship_type="passenger", engine_type="gen3", manifest=manifest)
+                #d.addCallback(self.factory.send_arrival_message, ship)
+                print("success")
 
         except json.decoder.JSONDecodeError as err:
+            print("failure")
             print(err)
         
     def quit(self):
