@@ -23,6 +23,15 @@ var i = 0;
 var j = 0;
 var active_shipments = [];
 
+//var min_virt_x = virt_x - (virt_width/2)
+//var max_virt_x = virt_x + (virt_width/2)
+//var min_virt_y = virt_y - (virt_height/2);
+//var max_virt_y = virt_y + (virt_height/2);
+var min_virt_x;
+var max_virt_x;
+var min_virt_y;
+var max_virt_y;
+
 while (i <= 100) {
     j = 0;
     var this_chunk = [];
@@ -333,9 +342,14 @@ function redraw(){
     var pixel_width = Math.floor(10000000000000 / canvas.width);
     var x;
     var y;
-    var min_virt_x, min_virt_y, max_virt_x, max_virt_y;
+//    var min_virt_x, min_virt_y, max_virt_x, max_virt_y;
     var within_x, within_y;
     var hitbox_coords;
+    min_virt_x = virt_x - (virt_width/2)
+    max_virt_x = virt_x + (virt_width/2)
+    min_virt_y = virt_y - (virt_height/2);
+    max_virt_y = virt_y + (virt_height/2);
+    console.log(min_virt_x, max_virt_x, min_virt_y, max_virt_y);
     hitboxes = [];
    
     ctx.fillStyle = "black";
@@ -345,10 +359,10 @@ function redraw(){
         }
     virt_width = phys_width * zoom_factor ** zoom_level * 1000000;
     virt_height = phys_height * zoom_factor ** zoom_level * 1000000;
-    min_virt_x = virt_x - (virt_width/2);
-    min_virt_y = virt_y - (virt_height/2);
-    max_virt_x = virt_x + (virt_width/2);
-    max_virt_y = virt_y + (virt_height/2);
+    //min_virt_x = virt_x - (virt_width/2);
+    //min_virt_y = virt_y - (virt_height/2);
+    //max_virt_x = virt_x + (virt_width/2);
+    //max_virt_y = virt_y + (virt_height/2);
     if (show_reticule) {
         ctx.strokeStyle = "white";
         ctx.lineWidth = 2;
@@ -427,7 +441,7 @@ function redraw(){
 }
 
 function draw_shipment(shipment) {
-    console.log(shipment);
+    console.log("===================");
     let source_id = shipment.source;
     let dest_id = shipment.destination;
     var source;
@@ -445,32 +459,160 @@ function draw_shipment(shipment) {
     if (!source && !destination) {
         return
         }
-    console.log("source: ", source, " destination: ", destination);
 
     let source_coords = [source.x, source.y]
     let dest_coords = [destination.x, destination.y]
-    console.log(source_coords, dest_coords);
-    let min_virt_x = virt_x - (virt_width/2)
-    let max_virt_x = virt_x + (virt_width/2)
-    let min_virt_y = virt_y - (virt_height/2);
-    let max_virt_y = virt_y + (virt_height/2);
-    console.log(min_virt_x, source_coords[0], max_virt_x);
-    console.log(min_virt_y, source_coords[1], max_virt_y);
-    if (min_virt_x <= source_coords[0] && source_coords[0] < max_virt_x  &&
-        min_virt_y <= source_coords[1] && source_coords[1] < max_virt_y &&
-        min_virt_x <= dest_coords[0] && dest_coords[0] < max_virt_x &&
-        min_virt_y <= dest_coords[1] && dest_coords[1] < max_virt_y ) {
-            
-            console.log("it's visible in the screen");
-            source_coords = virt_to_phys(source_coords[0], source_coords[1]);
-            dest_coords = virt_to_phys(dest_coords[0], dest_coords[1]);
-            console.log(source_coords, dest_coords);
-            ctx.beginPath();
-            ctx.moveTo(...source_coords);
-            ctx.lineTo(...dest_coords);
-            ctx.stroke();
-            };
+    var phys_source_coords = null;
+    var phys_dest_coords = null;
+    if (check_if_point_in_window(source_coords)){
+        phys_source_coords = virt_to_phys(source_coords[0], source_coords[1]);
+        }
+    if (check_if_point_in_window(dest_coords)) {
+        phys_dest_coords = virt_to_phys(dest_coords[0], dest_coords[1]);
+        }
+    if (phys_source_coords && phys_dest_coords) {
+        draw_line(phys_source_coords, phys_dest_coords);
+        return;
+        }
+    var top_line, right_line, left_line, bottom_line;
+    var all_intersections = []
+    var valid_intersections = []
+    let shipment_line = [source_coords, dest_coords];
+    top_line = [[min_virt_x, min_virt_y], [max_virt_x, min_virt_y]];
+    bottom_line = [[min_virt_x, max_virt_y], [max_virt_x, max_virt_y]];
+    left_line = [[min_virt_x, min_virt_y], [min_virt_x, max_virt_y]];
+    right_line = [[max_virt_x, min_virt_y], [max_virt_x, max_virt_y]];
+    var all_lines = [top_line, bottom_line, left_line, right_line];
+    var which_boundary = 0;
+    [top_line, right_line, left_line, bottom_line].forEach(function(boundary){
+        let m = get_m(shipment_line); // what if directly vertical?
+        let b = get_b(shipment_line, m);
+        //phys_source_coords = virt_to_phys(source_coords[0], source_coords[1]);
+    //    draw_line(phys_source_coords, phys_dest_coords);
+        m = get_m(shipment_line);
+        b = get_b(shipment_line, m);
+        intersection = get_intersection(shipment_line, boundary, m, b, which_boundary);
 
+
+        var relevant_line = all_lines[which_boundary];
+        if ([0, 3].includes(which_boundary)) {
+            if (relevant_line[0][0] <= intersection[0] && intersection[0] < relevant_line[1][0]) {
+                //console.log("HHHHH ");
+                valid_intersections.push(intersection);
+                console.log("VALIDa the intersection is ", intersection, which_boundary);
+                }
+            else {console.log("INVALIDb the intersection is ", intersection, which_boundary);}
+
+            }
+        else {
+            if (relevant_line[0][1] <= intersection[1] && intersection[1] < relevant_line[1][1]) {
+                //console.log("jjjjjj ");
+                console.log("VALIDc the intersection is ", intersection, which_boundary);
+                valid_intersections.push(intersection);
+                }
+            else {console.log("INVALIDd the intersection is ", intersection, which_boundary);}
+            }
+
+        all_intersections.push(intersection);
+        which_boundary++;
+    //    if (min_virt_x <= source_coords[0] && source_coords[0] < max_virt_x  &&
+    //        min_virt_y <= source_coords[1] && source_coords[1] < max_virt_y &&
+    //        min_virt_x <= dest_coords[0] && dest_coords[0] < max_virt_x &&
+    //        min_virt_y <= dest_coords[1] && dest_coords[1] < max_virt_y ) {
+    //            
+    //            console.log("it's visible in the screen");
+    //            source_coords = virt_to_phys(source_coords[0], source_coords[1]);
+    //            dest_coords = virt_to_phys(dest_coords[0], dest_coords[1]);
+    //            console.log(source_coords, dest_coords);
+    //            draw_line(source_coords, dest_coords);
+    //            };
+
+        });
+    var virt_points = [source_coords, dest_coords];
+    var final_points = [];
+    virt_points.forEach(function(endpoint) {
+        if (check_if_point_in_window(endpoint)) {
+            //console.log("it's in the window ", endpoint);
+            final_points.push(virt_to_phys(...endpoint));
+            return;
+            }
+        else {
+            final_points.push(virt_to_phys(...valid_intersections[0]));
+            //console.log("it is not in the window ", endpoint);
+//            if (((valid_intersections[0][0] - endpoint[0])**2 + (valid_intersections[0][1] - endpoint[1])**2 )<= ((valid_intersections[1][0] - endpoint[0])**2 + (valid_intersections[1][1] - endpoint[1])**2)) {
+//                final_points.push(virt_to_phys(...valid_intersections[1]));
+//                }
+//            else {
+//                final_points.push(virt_to_phys(...valid_intersections[0]));
+//                }
+            };
+        });        
+    draw_line(...final_points);
+    console.log("final points ", ...final_points);
+    console.log("all intersections", all_intersections);
+    console.log("valid intersections", valid_intersections);
+    }
+function get_intersection(line, boundary, m, b, which_boundary) {
+    // y = m * x + b
+    // m2 * x + b2 = m * x + b
+    // 0 + b2 = m * x + b
+    // b2 = m * x + b
+    // b2 - b = m * x
+    // m * x = b2 - b
+    // x = (b2 - b)/m
+    console.log(boundary, "LLLLLLLLLboundary   ", which_boundary);
+    if (boundary[0][1] == boundary[1][1]) {
+        console.log("Y is equal");
+        b2 = boundary[0][1];
+        x = (b2 - b) / m;
+        //console.log("JJJJJJJJJJJJ ", x, b2, boundary);
+        return [x, b2];
+        }
+    else {
+        //console.log("Y is not equal ", boundary[0], boundary[1]);
+        // y = m * x + b
+        // y - b = m * x
+        // (y-b)/m = x
+        // x = (y-b)/m
+        // (y-b2) / m2 = (y-b)/m
+        // y = mx + b
+        // y = 60
+        // 
+        //y = boundary[0][0];
+        //x = (y-b)/m;
+        // y = m * x + b
+        // y = N
+        // N = m * x + b
+        // N - b = m * x
+        // (N - b)/m = x
+        // x = (N-b) / m
+        N = boundary[0][1];
+        x = (N-b)/m;
+        console.log("X is equal, m: ", m, " b: ", b, "x: ", x, "y: ", y);
+        //return [y, x];
+        return [x, N];
+        }
+    }
+function get_m(line) {
+    return (line[1][1]-line[0][1])/(line[1][0]-line[0][0])
+    }
+function get_b(line, m){
+    point = line[0];
+    return point[1] - m * point[0];
+    }
+function check_if_point_in_window(point) {
+    if (min_virt_x <= point[0] && point[0] < max_virt_x  &&
+        min_virt_y <= point[1] && point[1] < max_virt_y) {
+            return true;
+            }
+    return false;
+
+    }
+function draw_line(source_coords, dest_coords){
+    ctx.beginPath();
+    ctx.moveTo(...source_coords);
+    ctx.lineTo(...dest_coords);
+    ctx.stroke();
     }
 class hitbox {
     constructor(planet, west, north, east, south){
