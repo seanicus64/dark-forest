@@ -22,11 +22,6 @@ var chunks = [];
 var i = 0;
 var j = 0;
 var active_shipments = [];
-
-//var min_virt_x = virt_x - (virt_width/2)
-//var max_virt_x = virt_x + (virt_width/2)
-//var min_virt_y = virt_y - (virt_height/2);
-//var max_virt_y = virt_y + (virt_height/2);
 var min_virt_x;
 var max_virt_x;
 var min_virt_y;
@@ -113,7 +108,6 @@ function test(event) {
 function get_celestial_from_phys_coord(x, y) {
     var planet = null;
     hitboxes.forEach(function(hb) {
-        
         if (hb.west <= x && x < hb.east) {
             if (hb.north <= y && y < hb.south) {
                 planet = hb.planet;
@@ -161,7 +155,6 @@ ctx.fillStyle = "black";
 ctx.fillRect(0, 0, canvas.width, canvas.height);
 let socket = new WebSocket("ws://127.0.0.1:9000")
 socket.onopen = function(e) {
-    console.log("connection established");
     socket.send("cucumber");
     };
 
@@ -208,7 +201,6 @@ function draw_grid(){
     while (i <= which_interval_bottom) {
         phys_i = (((i*interval_size)-(virt_y - (virt_height/2))   )/(zoom_factor**zoom_level*1000000));
         ctx.moveTo(0, phys_i);
-        console.log(phys_i);
         ctx.lineTo(phys_width, phys_i);
         ctx.stroke();
         i++;
@@ -349,7 +341,6 @@ function redraw(){
     max_virt_x = virt_x + (virt_width/2)
     min_virt_y = virt_y - (virt_height/2);
     max_virt_y = virt_y + (virt_height/2);
-    console.log(min_virt_x, max_virt_x, min_virt_y, max_virt_y);
     hitboxes = [];
    
     ctx.fillStyle = "black";
@@ -385,8 +376,6 @@ function redraw(){
         ctx.lineTo(phys_width/2+8, phys_width/2+8);
         ctx.stroke();
         };
-    console.log("start drawing stars");
-    console.log(allstars);
     allstars.forEach(function(celestial){
         within_x = (min_virt_x <= celestial.x && celestial.x < max_virt_x);
         within_y = (min_virt_y <= celestial.y && celestial.y < max_virt_y);
@@ -433,62 +422,37 @@ function redraw(){
         }
     );
     active_shipments.forEach(function(shipment){
-        console.log("source: " , shipment.source, " dest: ", shipment.destination);
         draw_shipment(shipment);
         })
     status_.innerHTML = zoom_level;
-    console.log("finished redraw ", zoom_level, virt_x, virt_y);
 }
-
-function draw_shipment(shipment) {
-    console.log("===================");
-    let source_id = shipment.source;
-    let dest_id = shipment.destination;
-    var source;
-    var destination;
-
-    allstars.forEach(function(celestial){
-        if (celestial.id == source_id) {
-            source = celestial;
-            }
-        if (celestial.id == dest_id) {
-            destination = celestial;
-            }
-
-        });
-    if (!source && !destination) {
-        return
+function draw_shipment_line(a_coords, b_coords) {
+    let phys_a_coords = null;
+    let phys_b_coords = null;
+    if (check_if_point_in_window(a_coords)) {
+        phys_a_coords = virt_to_phys(...a_coords);
         }
-
-    let source_coords = [source.x, source.y]
-    let dest_coords = [destination.x, destination.y]
-    var phys_source_coords = null;
-    var phys_dest_coords = null;
-    if (check_if_point_in_window(source_coords)){
-        phys_source_coords = virt_to_phys(source_coords[0], source_coords[1]);
+    if (check_if_point_in_window(b_coords)) {
+        phys_b_coords = virt_to_phys(...b_coords);
         }
-    if (check_if_point_in_window(dest_coords)) {
-        phys_dest_coords = virt_to_phys(dest_coords[0], dest_coords[1]);
-        }
-    if (phys_source_coords && phys_dest_coords) {
-        draw_line(phys_source_coords, phys_dest_coords);
+    if (phys_a_coords && phys_b_coords) {
+        draw_line(phys_a_coords, phys_b_coords);
         return;
         }
+
     var top_line, right_line, left_line, bottom_line;
     var all_intersections = []
     var valid_intersections = []
-    let shipment_line = [source_coords, dest_coords];
+    let shipment_line = [a_coords, b_coords];
     top_line = [[min_virt_x, min_virt_y], [max_virt_x, min_virt_y]];
     bottom_line = [[min_virt_x, max_virt_y], [max_virt_x, max_virt_y]];
     left_line = [[min_virt_x, min_virt_y], [min_virt_x, max_virt_y]];
     right_line = [[max_virt_x, min_virt_y], [max_virt_x, max_virt_y]];
-    var all_lines = [top_line, bottom_line, left_line, right_line];
+    var all_lines = [top_line, right_line, left_line, bottom_line];
     var which_boundary = 0;
     [top_line, right_line, left_line, bottom_line].forEach(function(boundary){
         let m = get_m(shipment_line); // what if directly vertical?
         let b = get_b(shipment_line, m);
-        //phys_source_coords = virt_to_phys(source_coords[0], source_coords[1]);
-    //    draw_line(phys_source_coords, phys_dest_coords);
         m = get_m(shipment_line);
         b = get_b(shipment_line, m);
         intersection = get_intersection(shipment_line, boundary, m, b, which_boundary);
@@ -499,98 +463,68 @@ function draw_shipment(shipment) {
             if (relevant_line[0][0] <= intersection[0] && intersection[0] < relevant_line[1][0]) {
                 //console.log("HHHHH ");
                 valid_intersections.push(intersection);
-                console.log("VALIDa the intersection is ", intersection, which_boundary);
                 }
-            else {console.log("INVALIDb the intersection is ", intersection, which_boundary);}
+            else {
+                }
 
             }
         else {
             if (relevant_line[0][1] <= intersection[1] && intersection[1] < relevant_line[1][1]) {
                 //console.log("jjjjjj ");
-                console.log("VALIDc the intersection is ", intersection, which_boundary);
                 valid_intersections.push(intersection);
                 }
-            else {console.log("INVALIDd the intersection is ", intersection, which_boundary);}
+            else {
+                }
             }
 
         all_intersections.push(intersection);
         which_boundary++;
-    //    if (min_virt_x <= source_coords[0] && source_coords[0] < max_virt_x  &&
-    //        min_virt_y <= source_coords[1] && source_coords[1] < max_virt_y &&
-    //        min_virt_x <= dest_coords[0] && dest_coords[0] < max_virt_x &&
-    //        min_virt_y <= dest_coords[1] && dest_coords[1] < max_virt_y ) {
-    //            
-    //            console.log("it's visible in the screen");
-    //            source_coords = virt_to_phys(source_coords[0], source_coords[1]);
-    //            dest_coords = virt_to_phys(dest_coords[0], dest_coords[1]);
-    //            console.log(source_coords, dest_coords);
-    //            draw_line(source_coords, dest_coords);
-    //            };
-
         });
-    var virt_points = [source_coords, dest_coords];
+    var virt_points = [a_coords, b_coords];
     var final_points = [];
     virt_points.forEach(function(endpoint) {
         if (check_if_point_in_window(endpoint)) {
-            //console.log("it's in the window ", endpoint);
             final_points.push(virt_to_phys(...endpoint));
             return;
             }
         else {
-            final_points.push(virt_to_phys(...valid_intersections[0]));
-            //console.log("it is not in the window ", endpoint);
-//            if (((valid_intersections[0][0] - endpoint[0])**2 + (valid_intersections[0][1] - endpoint[1])**2 )<= ((valid_intersections[1][0] - endpoint[0])**2 + (valid_intersections[1][1] - endpoint[1])**2)) {
-//                final_points.push(virt_to_phys(...valid_intersections[1]));
-//                }
-//            else {
-//                final_points.push(virt_to_phys(...valid_intersections[0]));
-//                }
+            var distance1;
+            var distance2;
+            distance1 = (valid_intersections[0][0] - endpoint[0])**2 + (valid_intersections[0][1] - endpoint[1])**2;
+            distance2 = (valid_intersections[1][0] - endpoint[0])**2 + (valid_intersections[1][1] - endpoint[1])**2;
+            if (distance1 <= distance2) {
+                final_points.push(virt_to_phys(...valid_intersections[0]));
+                }
+            else {
+                final_points.push(virt_to_phys(...valid_intersections[1]));
+                }
             };
         });        
     draw_line(...final_points);
-    console.log("final points ", ...final_points);
-    console.log("all intersections", all_intersections);
-    console.log("valid intersections", valid_intersections);
+    }
+function draw_shipment(shipment) {
+    let source_id = shipment.source;
+    let dest_id = shipment.destination;
+    let source = shipment.source_obj
+    let destination = shipment.destination_obj;;
+    let current_coords = shipment.current_coords;
+    ctx.strokeStyle = "green";
+    draw_shipment_line([source.x, source.y], [destination.x, destination.y]);
+    ctx.strokeStyle = "purple";
+    ctx.lineWidth = 2;
+    draw_shipment_line([source.x, source.y], shipment.current_coords);
+    return;
     }
 function get_intersection(line, boundary, m, b, which_boundary) {
-    // y = m * x + b
-    // m2 * x + b2 = m * x + b
-    // 0 + b2 = m * x + b
-    // b2 = m * x + b
-    // b2 - b = m * x
-    // m * x = b2 - b
-    // x = (b2 - b)/m
-    console.log(boundary, "LLLLLLLLLboundary   ", which_boundary);
     if (boundary[0][1] == boundary[1][1]) {
-        console.log("Y is equal");
         b2 = boundary[0][1];
         x = (b2 - b) / m;
-        //console.log("JJJJJJJJJJJJ ", x, b2, boundary);
         return [x, b2];
         }
     else {
-        //console.log("Y is not equal ", boundary[0], boundary[1]);
-        // y = m * x + b
-        // y - b = m * x
-        // (y-b)/m = x
-        // x = (y-b)/m
-        // (y-b2) / m2 = (y-b)/m
-        // y = mx + b
-        // y = 60
-        // 
-        //y = boundary[0][0];
-        //x = (y-b)/m;
-        // y = m * x + b
-        // y = N
-        // N = m * x + b
-        // N - b = m * x
-        // (N - b)/m = x
-        // x = (N-b) / m
-        N = boundary[0][1];
-        x = (N-b)/m;
-        console.log("X is equal, m: ", m, " b: ", b, "x: ", x, "y: ", y);
-        //return [y, x];
-        return [x, N];
+        N = boundary[0][0]; 
+        y = N * m + b;
+        return [N, y];
         }
     }
 function get_m(line) {
@@ -634,9 +568,7 @@ function draw_celestial(celestial){
     phys_x = Math.floor(coords[0]);
     phys_y = Math.floor(coords[1]);
     if (zoom_level < 1){
-        console.log("radius is", celestial.radius);
         phys_radius = Math.round(celestial.radius / (zoom_factor ** zoom_level * 1000000));
-        console.log("phys radius", phys_radius, zoom_factor, zoom_level, zoom_factor**zoom_level);
         console.log(phys_radius);
         }
     if (phys_radius <= 1){
@@ -666,11 +598,9 @@ function virt_to_phys(x, y){
 }
 
 function create_stars() {
-    console.log("in create_stars function");
     var innerstring = starlist[1];
     innerstring += starlist[1][1];
     status_.innerHTML = innerstring;
-    console.log("chunks are " , chunks);
     starlist.forEach(function (star){
         var celestial = new Celest(star[0], star[1], star[2], star[3], star[4], star[5], star[6]);
         allstars.push(celestial);
@@ -682,8 +612,6 @@ function create_stars() {
         if (y_chunk < 0){
             y_chunk = 0;
             }
-        console.log("xchunk: ", x_chunk, "celestial.x: ", celestial.x, "y_chunk: ", y_chunk);
-        console.log(x_chunk, chunks[x_chunk], chunks[x_chunk][y_chunk]);
         chunks[x_chunk][y_chunk].push(celestial);
     });
 }
@@ -693,7 +621,6 @@ var banana;// = 43;
 var allstars = [];
 
 socket.onmessage = function(event) {
-    console.log("on message");
     message = `[message] Data received from server: ${event.data}`;
     star_data = JSON.parse(event.data);
     starlist = star_data["ITEMS"];
@@ -705,7 +632,6 @@ socket.onmessage = function(event) {
             break;
             }
         case "SHIPMENT_ARRIVED": {
-            console.log("banana");
             break;
             }
         }
@@ -762,23 +688,16 @@ function add(planet, z_l) {
     var element = document.createElement("button");
     element.value = name;
     element.name = name;
-    console.log(name);
-    console.log(typeof(name));
     element.innerHTML = planet.name;
     element.name = "banana";
-    console.log(z_l);
     element.value = Number(z_l);
     element.onclick = function() {
-        console.log("you've added a button");
         focused_celestial = planet;
         virt_x = planet.x;
         virt_y = planet.y;
-        console.log(this.value);
         console.log(typeof(this.value));
         zoom_level = Number(this.value);
         //redraw();
-        console.log(zoom_level);
-        console.log(virt_x, virt_y);
 
         }
     var foo = document.getElementById("bookmarks");
@@ -797,24 +716,17 @@ function create_planet_dropdown(celestial) {
 
         var neighboring_chunks = []
         let temp_x = leftmost;
-        console.log("leftmost: ", leftmost, "rightmost: ", rightmost, "topmost: ", topmost, "bottommost: ", bottommost);
         while (temp_x <= rightmost) {
             let temp_y = topmost;
             while (temp_y <= bottommost) {
                 neighboring_chunks.push(chunks[temp_x][temp_y]);
-                console.log("Current: ", temp_x, temp_y);
                 console.log(neighboring_chunks);
                 temp_y++;
                 }
-            console.log("temp_x before: ", temp_x);
             temp_x++;
-            console.log("temp_x after: ", temp_x);
             }
-        console.log("neighboring chunks: ", neighboring_chunks);
         let joined_array = [].concat(...neighboring_chunks);
-        console.log("joined_array: ", joined_array);
         joined_array.sort(distance_squared);
-        console.log("sorted joined_array: ", joined_array);
         joined_array.forEach(function(celestial2){
             celestial2.option_element.innerHTML = celestial2.x + " " + celestial2.name + distance_squared(celestial, celestial2);
             source_planet_dropdown.appendChild(celestial2.option_element);
@@ -822,11 +734,9 @@ function create_planet_dropdown(celestial) {
     }
 
 function distance_squared(a, b) {
-    console.log("what");
     console.log(focused_celestial, a, b, focused_celestial.x, focused_celestial.y, a.x, b.x);
     a_distance = (focused_celestial.x - a.x)**2 + (focused_celestial.y - a.y)**2
     b_distance = (focused_celestial.x - b.x)**2 + (focused_celestial.y - b.y)**2
-    console.log(a_distance, b_distance, "a and b distance")
     if (a_distance >= b_distance) {
         return 1;
         } else {
@@ -838,23 +748,94 @@ function distance_squared(a, b) {
 function remake_bookmarks() {
     var bookmarks_html = "";
     bookmarks.forEach(function(bookmark){
-        console.log(bookmark);
-        console.log(bookmarks_html);
         bookmarks_html += ("<button class='bookmark' onclick='bookmark_button_press()'>" + bookmark[0].name + "</button>");
         });
     html_tag.innerHTML = bookmarks_html;
     }
+function replacer(key, value) {
+    if (["source_obj", "destination_obj"].includes(key)) {
+        return value;
+        //TODO: worry about this later.
+        return undefined
+        };
+    return value
 
-function send_shipment() {
-    console.log("sent shipment");
-    socket.send("test");
-    var shipment = {message_type: "ship", source: 1, destination: 2000, manifest: [4,5,6,7]};
-    active_shipments.push(shipment);
-    socket.send(JSON.stringify(shipment));
     }
+class Shipment {
+    constructor(source_id, dest_id, manifest) {
+        this.source = source_id;
+        this.destination = dest_id;
+        this.manifest = manifest;
+        this.message_type = "ship";
+        var source_obj;
+        var destination_obj;
+        var current_coords;
+        this.approved = true;
+        this.distance = 0;
+        this.speed = 100
+        
+        for (var i=0; i< allstars.length; i++) {
+            if (i <= 10) {
+                }
+            if (allstars[i].id == source_id) {
+                this.source_obj = allstars[i];
+                this.current_coords = [this.source_obj.x, this.source_obj.y];
+                }
+            if (allstars[i].id == dest_id) {
+                this.destination_obj = allstars[i];
+                }
+            }
 
+        }
+    update() {
+        let x = this.current_coords[0];
+        let y = this.current_coords[1];
+        console.log("the x is: ", x, " the y is: ", y);
+        let dest_coords = [this.destination_obj.x, this.destination_obj.y];
+        let source_coords = [this.source_obj.x, this.source_obj.y];
+        let m = (dest_coords[1] - source_coords[1]) / (dest_coords[0] - source_coords[0]);
+        let b = -1 * m * source_coords[0] + source_coords[1];
+        var delta_x, delta_y;
+        console.log("m is ", m, " b is ", b)
+        console.log("speed: ", this.speed, " Math.sqrt(1+m**2)", Math.sqrt(1+m**2))
+        if (dest_coords[0] >= source_coords[0]) {
+            delta_x = x + this.speed / Math.sqrt(1+m**2);
+            }
+        else {
+            delta_x = x - this.speed / Math.sqrt(1+m**2);
+            }
+        delta_y = m * delta_x + b;
+        this.current_coords = [delta_x, delta_y];
+
+        }
+    toString = function(){
+        return ["suource: ", this.source, "dest: ", this.destination];
+        }
+
+    }
+function send_shipment_request() {
+    // Send a shipment request to the server.
+    socket.send("test");
+//    var shipment = {message_type: "ship", source: 1, destination: 2000, manifest: [4,5,6,7]};
+    sh = new Shipment(1, 2000, [4,5,6,7]);
+    active_shipments.push(sh);
+    socket.send(JSON.stringify(sh, replacer));
+    }
+var current_time = 0;
+function set_time() {
+    status_.innerHTML = current_time;
+    current_time++;
+    
+    if (current_time %10 == 0){
+        active_shipments.forEach(function(shipment){
+            shipment.update();
+            redraw()
+            });
+        }
+
+    }
 window.onload = function() {
     redraw();
-    console.log("finished loading");
     html_tag = document.getElementById("bookmarks");
+    setInterval(set_time, 100);
     }
